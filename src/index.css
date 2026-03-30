@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand: #3B82F6;
+  --color-brand-hover: #2563EB;
+  --color-bg-main: #F7F9FB;
+  --color-text-main: #1F2937;
+  --color-text-muted: #6B7280;
+  --color-border-soft: #E5E7EB;
+}
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light;
+  color: #1F2937;
+  background-color: #F7F9FB;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  color: #1F2937;
+  background-color: #F7F9FB;
+}
+
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-[#1F2937];
+  }
+}
+
+/* Fix Tailwind Typography (prose) list spacing */
+.prose ol, .prose ul {
+  padding-left: 1.5em !important;
+  margin-left: 0 !important;
+}
+
+.prose li {
+  padding-left: 0.25em !important;
+  margin-top: 0.5em !important;
+  margin-bottom: 0.5em !important;
+}
+
+.prose ol {
+  list-style-type: decimal !important;
+}
+
+.prose ul {
+  list-style-type: disc !important;
+}
+
+/* Ensure TinyMCE content in preview matches */
+.rich-text-content {
+  font-size: 18px !important;
+  line-height: 1.8 !important;
+  color: #1F2937 !important;
+}
+
+.rich-text-content h1, .rich-text-content h2, .rich-text-content h3, 
+.rich-text-content h4, .rich-text-content h5, .rich-text-content h6 { 
+  color: #111827 !important; 
+  font-weight: 800 !important; 
+  margin-top: 1.5em !important; 
+}
+
+.rich-text-content p { 
+  margin-bottom: 1.2em !important; 
+}
+
+.rich-text-content img { 
+  max-width: 100% !important; 
+  height: auto !important; 
+  border-radius: 1rem !important; 
+}
+
+.rich-text-content ol, .rich-text-content ul {
+  padding-left: 1.5em !important;
+  margin-bottom: 1.2em !important;
+}
+
+.rich-text-content li {
+  padding-left: 0.25em !important;
+  margin-bottom: 0.6em !important;
+}
+
+.rich-text-content ol {
+  list-style-type: decimal !important;
+}
+
+.rich-text-content ul {
+  list-style-type: disc !important;
+}
