@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useData, useTranslation } from '../context/DataContext';
 import { 
   Plus, Trash2, Edit2, Save, X, LogOut, Layout, 
-  BookOpen, User, Upload, Image as ImageIcon, ArrowLeft,
+  BookOpen, User, Upload, Download, Image as ImageIcon, ArrowLeft,
   ChevronLeft, Eye, BarChart3, TrendingUp, Users, MousePointer2, Clock, Globe
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -64,6 +64,7 @@ const Admin = () => {
     { id: 'blog', label: t('admin.manageBlog'), icon: <BookOpen className="w-4 h-4 mr-2" /> },
     { id: 'about', label: t('admin.manageAbout'), icon: <User className="w-4 h-4 mr-2" /> },
     { id: 'analytics', label: t('admin.analytics'), icon: <BarChart3 className="w-4 h-4 mr-2" /> },
+    { id: 'backup', label: 'Data Backup', icon: <Download className="w-4 h-4 mr-2" /> },
   ];
 
   const startEditBlog = (post) => {
@@ -150,6 +151,9 @@ const Admin = () => {
             )}
             {activeTab === 'analytics' && (
               <AnalyticsDashboard analytics={analytics} />
+            )}
+            {activeTab === 'backup' && (
+              <DataBackup />
             )}
           </div>
         </>
@@ -325,6 +329,71 @@ const StatCard = ({ icon, label, value, color }) => {
           <p className="text-xs font-bold uppercase tracking-widest opacity-70 mb-1">{label}</p>
           <p className="text-2xl font-black">{value}</p>
         </div>
+      </div>
+    </div>
+  );
+};
+
+const DataBackup = () => {
+  const { exportData, importData } = useData();
+  const [message, setMessage] = useState('');
+  const fileInputRef = useRef(null);
+
+  const handleExport = () => {
+    const json = exportData();
+    const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `productforge-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setMessage('Exported current data as JSON file.');
+  };
+
+  const handleImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const ok = importData(reader.result);
+      setMessage(ok ? 'Import successful. Data updated locally.' : 'Import failed. Invalid JSON.');
+    };
+    reader.readAsText(file);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold text-text-main">Data Backup & Restore</h2>
+      </div>
+      <div className="bg-bg-main/50 p-8 rounded-[2rem] border border-border-soft space-y-6">
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={handleExport}
+            className="px-6 py-3 bg-brand text-white rounded-xl font-semibold hover:bg-brand-hover transition-all"
+          >
+            Export JSON
+          </button>
+          <input
+            type="file"
+            accept="application/json"
+            ref={fileInputRef}
+            className="hidden"
+            onChange={handleImport}
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="px-6 py-3 border border-brand text-brand rounded-xl font-semibold hover:bg-brand/5 transition-all"
+          >
+            Import JSON
+          </button>
+        </div>
+        <p className="text-sm text-text-muted">
+          Export 会下载当前浏览器本地的数据（项目、博客、关于我、语言）。Import 会覆盖当前浏览器的对应数据。
+          图片建议使用公共 URL 或将文件放入仓库的 public/uploads 并使用 /productforge/uploads/文件名 的路径。
+        </p>
+        {message && <div className="text-sm font-semibold text-brand">{message}</div>}
       </div>
     </div>
   );

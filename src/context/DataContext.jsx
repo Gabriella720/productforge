@@ -325,6 +325,31 @@ export const DataProvider = ({ children }) => {
     });
   };
 
+  const exportData = () => {
+    const payload = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      projects,
+      blogPosts,
+      aboutInfo,
+      language
+    };
+    return JSON.stringify(payload, null, 2);
+  };
+
+  const importData = (json) => {
+    try {
+      const data = typeof json === 'string' ? JSON.parse(json) : json;
+      if (data.projects) setProjects(data.projects);
+      if (data.blogPosts) setBlogPosts(data.blogPosts);
+      if (data.aboutInfo) setAboutInfo(data.aboutInfo);
+      if (data.language) setLanguage(data.language);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   return (
     <DataContext.Provider value={{
       projects, addProject, updateProject, deleteProject,
@@ -333,7 +358,8 @@ export const DataProvider = ({ children }) => {
       aboutInfo, updateAboutInfo,
       isAdmin, login, logout,
       language, setLanguage,
-      analytics, recordVisit
+      analytics, recordVisit,
+      exportData, importData
     }}>
       {children}
     </DataContext.Provider>
