@@ -60,7 +60,7 @@ function AppContent() {
 function App() {
   return (
     <DataProvider>
-      <Router>
+      <Router basename={import.meta.env.BASE_URL}>
         <AppContent />
       </Router>
     </DataProvider>
