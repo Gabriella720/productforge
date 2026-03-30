@@ -8,7 +8,7 @@ const Home = () => {
   const t = useTranslation();
 
   return (
-    <div className="max-w-6xl mx-auto px-4 pt-24 sm:pt-28 md:pt-32 pb-16 sm:pb-20 md:pb-24">
+    <div className="max-w-6xl mx-auto px-4 pt-12 sm:pt-14 md:pt-16 pb-16 sm:pb-20 md:pb-24">
       {/* Hero Section */}
       <div className="text-center mb-20 sm:mb-24 md:mb-32 relative">
         {/* Subtle background decoration */}

@@ -669,7 +669,7 @@ const BlogEditor = ({ post, onSave, onCancel }) => {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto pt-24">
+      <div className="max-w-4xl mx-auto pt-12">
         {/* 2. Metadata Settings */}
         <div className="bg-white rounded-[2rem] border border-border-soft p-10 mb-8 shadow-sm">
           <input 
@@ -706,7 +706,8 @@ const BlogEditor = ({ post, onSave, onCancel }) => {
                 'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount',
                 'emoticons', 'visualchars'
               ],
-              toolbar: 'undo redo | blocks | ' +
+              font_size_formats: '12px 14px 16px 18px 20px 24px 28px 32px 36px',
+              toolbar: 'undo redo | blocks fontsize | ' +
                 'bold italic forecolor backcolor | alignleft aligncenter ' +
                 'alignright alignjustify | bullist numlist outdent indent | ' +
                 'lineheight letterspacing | link image | removeformat | help',

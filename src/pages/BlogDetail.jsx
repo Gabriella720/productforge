@@ -73,7 +73,7 @@ const BlogDetail = () => {
   const emojis = ['😊', '😂', '😍', '🙌', '🔥', '👏', '🤔', '👍', '❤️', '✨'];
 
   return (
-    <div className="max-w-4xl mx-auto px-4 pt-32 pb-24">
+    <div className="max-w-4xl mx-auto px-4 pt-16 pb-24">
       {/* Navigation */}
       <Link 
         to="/blog" 
@@ -115,7 +115,7 @@ const BlogDetail = () => {
       </article>
 
       {/* Social Actions */}
-      <div className="flex items-center space-x-6 mb-24 py-8 border-y border-border-soft animate-in fade-in slide-in-from-bottom-14 duration-1000 delay-400">
+      <div className="flex flex-wrap items-center justify-center gap-4 mb-24 py-8 border-y border-border-soft animate-in fade-in slide-in-from-bottom-14 duration-1000 delay-400">
         <button 
           onClick={handleLike}
           className={`flex items-center px-8 py-3 rounded-full transition-all duration-300 font-bold text-sm uppercase tracking-widest group shadow-sm hover:shadow-md active:scale-95 ${

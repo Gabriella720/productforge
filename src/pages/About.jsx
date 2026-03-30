@@ -8,7 +8,7 @@ const About = () => {
   const [showWeChat, setShowWeChat] = useState(false);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 pt-32 pb-24 relative">
+    <div className="max-w-4xl mx-auto px-4 pt-16 pb-24 relative">
       {/* Profile Header */}
       <div className="text-center mb-24 animate-in fade-in slide-in-from-bottom-4 duration-700">
         <div className="relative inline-block mb-10 group">
