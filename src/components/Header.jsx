@@ -25,6 +25,9 @@ const Header = () => {
     const v = saved ? parseInt(saved, 10) : null;
     setDismissed(v);
   }, [siteNotice?.id]);
+
+  const showNotice = !!siteNotice?.enabled && dismissed !== siteNotice?.id;
+  const navRowHeightClass = showNotice ? 'h-12' : 'h-20';
   
   const navItems = [
     { name: t('nav.projects'), path: '/projects' },
@@ -42,8 +45,34 @@ const Header = () => {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md border-b border-border-soft z-50 transition-all duration-300 relative">
-      <div className="max-w-6xl mx-auto px-4 h-20 flex items-center justify-between">
+    <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md border-b border-border-soft z-50 transition-all duration-300 h-20">
+      {showNotice && (
+        <div className="bg-brand/5 border-b border-border-soft h-8">
+          <div className="max-w-6xl mx-auto px-4 h-8 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-brand/10 text-brand text-[10px] font-black tracking-widest shrink-0">
+                <Megaphone className="w-3 h-3" />
+                {language === 'zh' ? '公告' : 'NOTICE'}
+              </span>
+              <div className="text-[12px] font-semibold text-text-main/90 break-words leading-snug">
+                {language === 'zh' ? siteNotice.zh : siteNotice.en}
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                localStorage.setItem('dismissedSiteNoticeId', String(siteNotice.id));
+                setDismissed(siteNotice.id);
+              }}
+              className="p-1.5 rounded-lg text-text-muted hover:text-text-main hover:bg-white/60 transition-all shrink-0"
+              title={language === 'zh' ? '关闭' : 'Close'}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className={`max-w-6xl mx-auto px-4 ${navRowHeightClass} flex items-center justify-between`}>
         <Link to="/" className="flex items-center space-x-4 group">
           <Logo />
           <div className="flex flex-col justify-center">
@@ -108,33 +137,6 @@ const Header = () => {
           </div>
         </nav>
       </div>
-      {siteNotice?.enabled && dismissed !== siteNotice?.id && (
-        <div className="absolute left-0 right-0 top-full">
-          <div className="bg-brand/5 border-b border-border-soft">
-            <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3 min-w-0">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-brand/10 text-brand text-xs font-black tracking-widest shrink-0">
-                  <Megaphone className="w-3.5 h-3.5" />
-                  {language === 'zh' ? '公告' : 'NOTICE'}
-                </span>
-                <div className="text-sm font-semibold text-text-main/90 break-words leading-snug">
-                  {language === 'zh' ? siteNotice.zh : siteNotice.en}
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  localStorage.setItem('dismissedSiteNoticeId', String(siteNotice.id));
-                  setDismissed(siteNotice.id);
-                }}
-                className="p-2 rounded-xl text-text-muted hover:text-text-main hover:bg-white/60 transition-all shrink-0"
-                title={language === 'zh' ? '关闭' : 'Close'}
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </header>
   );
 };
