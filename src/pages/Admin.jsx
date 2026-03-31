@@ -674,7 +674,8 @@ const BlogList = ({ posts, onStartEdit, onStartAdd, onDelete }) => {
 const BlogEditor = ({ post, onSave, onCancel }) => {
   const [formData, setFormData] = useState({ ...post });
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [activeLang, setActiveLang] = useState('en');
+  const { language } = useData();
+  const [activeLang, setActiveLang] = useState(language || 'en');
   const t = useTranslation();
 
   useEffect(() => {
@@ -682,8 +683,8 @@ const BlogEditor = ({ post, onSave, onCancel }) => {
   }, [post]);
 
   useEffect(() => {
-    setActiveLang('en');
-  }, [post?.id]);
+    setActiveLang(language || 'en');
+  }, [post?.id, language]);
 
   useEffect(() => {
     const i18n = formData.i18n && typeof formData.i18n === 'object' ? formData.i18n : null;

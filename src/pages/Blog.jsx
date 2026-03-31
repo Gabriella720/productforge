@@ -114,10 +114,11 @@ const Blog = () => {
               className="flex flex-col border border-border-soft rounded-[2.5rem] overflow-hidden bg-white hover:shadow-[0_20px_50px_rgba(59,130,246,0.1)] transition-all duration-500 group hover:-translate-y-2"
             >
               <div className="relative overflow-hidden aspect-[16/10]">
+                <div className="absolute inset-0 bg-bg-main" />
                 <img 
                   src={post.image} 
                   alt={text.title}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  className="relative w-full h-full object-contain transition-transform duration-700 group-hover:scale-[1.02]"
                 />
                 <div className="absolute inset-0 bg-brand/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               </div>
