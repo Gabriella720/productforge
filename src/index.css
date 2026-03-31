@@ -99,3 +99,27 @@ body {
 .rich-text-content ul {
   list-style-type: disc !important;
 }
+
+.highlights-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(var(--cols-xs, 1), minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .highlights-grid {
+    grid-template-columns: repeat(var(--cols-sm, 2), minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 768px) {
+  .highlights-grid {
+    grid-template-columns: repeat(var(--cols-md, 3), minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .highlights-grid {
+    grid-template-columns: repeat(var(--cols-lg, 5), minmax(0, 1fr));
+  }
+}

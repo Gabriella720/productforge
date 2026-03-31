@@ -6,6 +6,10 @@ const About = () => {
   const { aboutInfo } = useData();
   const t = useTranslation();
   const [showWeChat, setShowWeChat] = useState(false);
+  const cards = aboutInfo.highlights || [];
+  const cols = Math.min(5, Math.max(1, cards.length));
+  const colsSm = Math.min(cols, 2);
+  const colsMd = Math.min(cols, 3);
 
   return (
     <div className="max-w-4xl mx-auto px-4 pt-16 pb-24 relative">
@@ -83,16 +87,30 @@ const About = () => {
 
       {/* Highlights Cards */}
       <section className="animate-in fade-in slide-in-from-bottom-10 duration-700 delay-150">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {(aboutInfo.highlights || []).map((card) => (
+        <div
+          className="highlights-grid"
+          style={{
+            ['--cols-xs']: 1,
+            ['--cols-sm']: colsSm,
+            ['--cols-md']: colsMd,
+            ['--cols-lg']: cols,
+          }}
+        >
+          {cards.map((card) => (
             <div
               key={card.id}
               className="bg-white border border-border-soft rounded-2xl p-7 text-center shadow-sm hover:shadow-lg hover:shadow-brand/5 transition-all"
             >
-              <div className="text-4xl font-black text-text-main tracking-tight">
+              <div
+                className="font-black text-text-main tracking-tight leading-tight break-words"
+                style={{ fontSize: card.valueFontSize ? `${card.valueFontSize}px` : undefined }}
+              >
                 {card.value}
               </div>
-              <div className="mt-2 text-sm font-semibold text-text-muted">
+              <div
+                className="mt-2 font-semibold text-text-muted leading-snug break-words"
+                style={{ fontSize: card.labelFontSize ? `${card.labelFontSize}px` : undefined }}
+              >
                 {card.label}
               </div>
             </div>

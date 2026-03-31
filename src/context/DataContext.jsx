@@ -117,9 +117,9 @@ const initialAboutInfo = {
   tagline: "Product Manager, AI Builder, try to build an awesome Life",
   profileImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=300",
   highlights: [
-    { id: 1, value: "80+", label: "Products Served" },
-    { id: 2, value: "3 Years", label: "Practical Experience" },
-    { id: 3, value: "Significant", label: "Business Growth Results" }
+    { id: 1, value: "80+", label: "Products Served", valueFontSize: 40, labelFontSize: 14 },
+    { id: 2, value: "3 Years", label: "Practical Experience", valueFontSize: 40, labelFontSize: 14 },
+    { id: 3, value: "Significant", label: "Business Growth Results", valueFontSize: 36, labelFontSize: 14 }
   ],
   socials: {
     github: "#",
@@ -136,6 +136,8 @@ export const DataProvider = ({ children }) => {
       id: typeof h.id === 'number' ? h.id : (Date.now() + idx),
       value: (h.value ?? '').toString(),
       label: (h.label ?? '').toString(),
+      valueFontSize: typeof h.valueFontSize === 'number' ? h.valueFontSize : undefined,
+      labelFontSize: typeof h.labelFontSize === 'number' ? h.labelFontSize : undefined,
     }));
 
     return {

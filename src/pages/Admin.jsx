@@ -1001,10 +1001,26 @@ const AboutManager = ({ info, onUpdate }) => {
                       setFormData({ ...formData, highlights: next });
                     }} />
                   </div>
-                  <div className="md:col-span-7">
+                  <div className="md:col-span-5">
                     <Input label="Label" value={card.label || ''} onChange={v => {
                       const next = [...(formData.highlights || [])];
                       next[idx] = { ...next[idx], label: v };
+                      setFormData({ ...formData, highlights: next });
+                    }} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Input label="Value px" type="number" value={(card.valueFontSize ?? 40).toString()} onChange={v => {
+                      const n = parseInt(v, 10);
+                      const next = [...(formData.highlights || [])];
+                      next[idx] = { ...next[idx], valueFontSize: Number.isFinite(n) ? n : undefined };
+                      setFormData({ ...formData, highlights: next });
+                    }} />
+                  </div>
+                  <div className="md:col-span-1">
+                    <Input label="Label px" type="number" value={(card.labelFontSize ?? 14).toString()} onChange={v => {
+                      const n = parseInt(v, 10);
+                      const next = [...(formData.highlights || [])];
+                      next[idx] = { ...next[idx], labelFontSize: Number.isFinite(n) ? n : undefined };
                       setFormData({ ...formData, highlights: next });
                     }} />
                   </div>
@@ -1024,7 +1040,7 @@ const AboutManager = ({ info, onUpdate }) => {
               <button
                 onClick={() => {
                   const next = [...(formData.highlights || [])];
-                  next.push({ id: Date.now(), value: '', label: '' });
+                  next.push({ id: Date.now(), value: '', label: '', valueFontSize: 40, labelFontSize: 14 });
                   setFormData({ ...formData, highlights: next });
                 }}
                 className="inline-flex items-center px-5 py-3 bg-white border border-border-soft rounded-2xl text-text-main font-semibold hover:border-brand/30 hover:bg-brand/5 transition-all"
