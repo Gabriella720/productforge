@@ -10,8 +10,11 @@ const BlogDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const t = useTranslation();
-  const { blogPosts, incrementView, incrementLike, incrementShare, addComment } = useData();
+  const { blogPosts, incrementView, incrementLike, incrementShare, addComment, language } = useData();
   const post = blogPosts.find(p => p.id === parseInt(id));
+  const i18n = post?.i18n?.[language] || post?.i18n?.en || post?.i18n?.zh || {};
+  const postTitle = i18n.title || post?.title || '';
+  const postContent = i18n.content || post?.content || '';
 
   const [commentText, setCommentText] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
@@ -86,7 +89,7 @@ const BlogDetail = () => {
       {/* Header */}
       <div className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
         <h1 className="text-4xl md:text-6xl font-black text-text-main mb-8 leading-[1.1] tracking-tight">
-          {post.title}
+          {postTitle}
         </h1>
         
         <div className="flex flex-wrap items-center gap-6 text-text-muted/80 font-bold text-xs uppercase tracking-widest mb-8">
@@ -111,7 +114,7 @@ const BlogDetail = () => {
         prose-a:text-brand prose-a:font-bold prose-a:no-underline hover:prose-a:underline
         rich-text-content
       ">
-        <div dangerouslySetInnerHTML={{ __html: post.content }} />
+        <div dangerouslySetInnerHTML={{ __html: postContent }} />
       </article>
 
       {/* Social Actions */}

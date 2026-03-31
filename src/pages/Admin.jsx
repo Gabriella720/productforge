@@ -76,9 +76,10 @@ const Admin = () => {
 
   const startAddBlog = () => {
     setEditingPost({ 
-      title: '', 
-      description: '', 
-      content: '', 
+      i18n: {
+        en: { title: '', description: '', content: '' },
+        zh: { title: '', description: '', content: '' }
+      },
       tag: '', 
       date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), 
       readTime: '', 
@@ -624,6 +625,8 @@ const ProjectManager = ({ projects, onAdd, onUpdate, onDelete }) => {
 
 const BlogList = ({ posts, onStartEdit, onStartAdd, onDelete }) => {
   const t = useTranslation();
+  const { language } = useData();
+  const getTitle = (post) => post?.i18n?.[language]?.title || post?.i18n?.en?.title || post?.title || '';
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center px-2">
@@ -643,7 +646,7 @@ const BlogList = ({ posts, onStartEdit, onStartAdd, onDelete }) => {
             <div className="flex items-center space-x-5">
               <img src={post.image} alt="" className="w-20 h-20 rounded-xl object-cover shadow-sm ring-1 ring-border-soft group-hover:ring-brand/20 transition-all" />
               <div>
-                <h3 className="font-bold text-text-main text-lg group-hover:text-brand transition-colors">{post.title}</h3>
+                <h3 className="font-bold text-text-main text-lg group-hover:text-brand transition-colors">{getTitle(post)}</h3>
                 <p className="text-text-muted text-sm font-medium mt-1">{post.date}</p>
               </div>
             </div>
@@ -671,7 +674,44 @@ const BlogList = ({ posts, onStartEdit, onStartAdd, onDelete }) => {
 const BlogEditor = ({ post, onSave, onCancel }) => {
   const [formData, setFormData] = useState({ ...post });
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [activeLang, setActiveLang] = useState('en');
   const t = useTranslation();
+
+  useEffect(() => {
+    setFormData({ ...post });
+  }, [post]);
+
+  useEffect(() => {
+    setActiveLang('en');
+  }, [post?.id]);
+
+  useEffect(() => {
+    const i18n = formData.i18n && typeof formData.i18n === 'object' ? formData.i18n : null;
+    if (i18n?.en && i18n?.zh) return;
+    const title = (formData.title || '').toString();
+    const description = (formData.description || '').toString();
+    const content = (formData.content || '').toString();
+    setFormData(prev => ({
+      ...prev,
+      i18n: {
+        en: { title, description, content },
+        zh: { title, description, content }
+      }
+    }));
+  }, [formData.i18n, formData.title, formData.description, formData.content]);
+
+  const langData = formData.i18n?.[activeLang] || { title: '', description: '', content: '' };
+
+  const setLangField = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      i18n: {
+        en: { ...(prev.i18n?.en || {}) },
+        zh: { ...(prev.i18n?.zh || {}) },
+        [activeLang]: { ...(prev.i18n?.[activeLang] || {}), [field]: value }
+      }
+    }));
+  };
 
   return (
     <div className="min-h-screen bg-bg-main -mx-4 px-4 pb-24 animate-in fade-in duration-500 relative">
@@ -698,9 +738,13 @@ const BlogEditor = ({ post, onSave, onCancel }) => {
                 const now = new Date();
                 const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                 
+                const en = formData.i18n?.en || { title: '', description: '', content: '' };
                 onSave({ 
                   ...formData, 
                   date: dateStr,
+                  title: en.title,
+                  description: en.description,
+                  content: en.content,
                 });
               }}
               className="flex items-center px-8 py-2.5 bg-brand text-white rounded-xl font-bold hover:bg-brand-hover transition-all shadow-md hover:shadow-brand/20"
@@ -715,10 +759,30 @@ const BlogEditor = ({ post, onSave, onCancel }) => {
       <div className="max-w-4xl mx-auto pt-12">
         {/* 2. Metadata Settings */}
         <div className="bg-white rounded-[2rem] border border-border-soft p-10 mb-8 shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <div className="text-sm font-bold text-text-muted uppercase tracking-widest">Content Language</div>
+            <div className="flex bg-bg-main p-1 rounded-xl border border-border-soft">
+              {[
+                { id: 'en', label: 'EN' },
+                { id: 'zh', label: '中文' },
+              ].map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => setActiveLang(opt.id)}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    activeLang === opt.id ? 'bg-white text-brand shadow-sm' : 'text-text-muted hover:text-brand'
+                  }`}
+                  type="button"
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <input 
             type="text"
-            value={formData.title}
-            onChange={e => setFormData({...formData, title: e.target.value})}
+            value={langData.title}
+            onChange={e => setLangField('title', e.target.value)}
             placeholder="Enter Title..."
             className="w-full text-4xl font-bold text-text-main border-none outline-none mb-10 placeholder:text-gray-200"
           />
@@ -728,8 +792,8 @@ const BlogEditor = ({ post, onSave, onCancel }) => {
           <div className="mt-8">
             <label className="block text-sm font-semibold text-text-main mb-3">Summary (For card list)</label>
             <textarea 
-              value={formData.description}
-              onChange={e => setFormData({...formData, description: e.target.value})}
+              value={langData.description}
+              onChange={e => setLangField('description', e.target.value)}
               className="w-full px-5 py-4 bg-bg-main/50 border border-border-soft rounded-2xl focus:ring-2 focus:ring-brand/10 focus:border-brand outline-none h-28 transition-all resize-none text-text-main"
               placeholder="A brief introduction to your post..."
             />
@@ -797,8 +861,8 @@ const BlogEditor = ({ post, onSave, onCancel }) => {
                 });
               }
             }}
-            value={formData.content}
-            onEditorChange={(content) => setFormData({ ...formData, content })}
+            value={langData.content}
+            onEditorChange={(content) => setLangField('content', content)}
           />
         </div>
       </div>
@@ -821,13 +885,13 @@ const BlogEditor = ({ post, onSave, onCancel }) => {
             <div className="p-8 md:p-16">
               <div className="max-w-3xl mx-auto">
                 <h1 className="text-4xl md:text-5xl font-bold text-text-main mb-8 leading-tight">
-                  {formData.title || 'Untitled Post'}
+                  {langData.title || 'Untitled Post'}
                 </h1>
 
                 <div className="rich-text-preview prose prose-slate max-w-none prose-headings:text-text-main prose-p:text-text-main/90 prose-img:rounded-3xl">
                   <div 
                     className="text-text-main/90 text-lg leading-relaxed rich-text-content"
-                    dangerouslySetInnerHTML={{ __html: formData.content }}
+                    dangerouslySetInnerHTML={{ __html: langData.content }}
                   />
                 </div>
               </div>

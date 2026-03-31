@@ -136,6 +136,37 @@ const initialSiteNotice = {
 };
 
 export const DataProvider = ({ children }) => {
+  const normalizeBlogPost = (post) => {
+    const base = post && typeof post === 'object' ? post : {};
+    const i18nRaw = base.i18n && typeof base.i18n === 'object' ? base.i18n : {};
+    const i18nEn = i18nRaw.en && typeof i18nRaw.en === 'object' ? i18nRaw.en : {};
+    const i18nZh = i18nRaw.zh && typeof i18nRaw.zh === 'object' ? i18nRaw.zh : {};
+
+    const fallbackTitle = (base.title ?? '').toString();
+    const fallbackDesc = (base.description ?? '').toString();
+    const fallbackContent = (base.content ?? '').toString();
+
+    const en = {
+      title: (i18nEn.title ?? fallbackTitle).toString(),
+      description: (i18nEn.description ?? fallbackDesc).toString(),
+      content: (i18nEn.content ?? fallbackContent).toString(),
+    };
+
+    const zh = {
+      title: (i18nZh.title ?? fallbackTitle).toString(),
+      description: (i18nZh.description ?? fallbackDesc).toString(),
+      content: (i18nZh.content ?? fallbackContent).toString(),
+    };
+
+    return {
+      ...base,
+      i18n: { en, zh },
+      title: en.title,
+      description: en.description,
+      content: en.content,
+    };
+  };
+
   const normalizeAboutInfo = (info) => {
     const base = info && typeof info === 'object' ? info : {};
     const highlightsRaw = Array.isArray(base.highlights) ? base.highlights : [];
@@ -174,7 +205,8 @@ export const DataProvider = ({ children }) => {
 
   const [blogPosts, setBlogPosts] = useState(() => {
     const saved = localStorage.getItem('blogPosts');
-    return saved ? JSON.parse(saved) : initialBlogPosts;
+    const arr = saved ? JSON.parse(saved) : initialBlogPosts;
+    return Array.isArray(arr) ? arr.map(normalizeBlogPost) : initialBlogPosts.map(normalizeBlogPost);
   });
 
   const [aboutInfo, setAboutInfo] = useState(() => {
@@ -213,7 +245,7 @@ export const DataProvider = ({ children }) => {
   }, [projects]);
 
   useEffect(() => {
-    localStorage.setItem('blogPosts', JSON.stringify(blogPosts));
+    localStorage.setItem('blogPosts', JSON.stringify(blogPosts.map(normalizeBlogPost)));
   }, [blogPosts]);
 
   useEffect(() => {
@@ -262,12 +294,13 @@ export const DataProvider = ({ children }) => {
   };
 
   const addBlogPost = (post) => {
-    const newPost = { ...post, id: Date.now() };
+    const newPost = normalizeBlogPost({ ...post, id: Date.now() });
     setBlogPosts([newPost, ...blogPosts]);
   };
 
   const updateBlogPost = (updatedPost) => {
-    setBlogPosts(blogPosts.map(p => p.id === updatedPost.id ? updatedPost : p));
+    const next = normalizeBlogPost(updatedPost);
+    setBlogPosts(blogPosts.map(p => p.id === next.id ? next : p));
   };
 
   const deleteBlogPost = (id) => {
@@ -359,7 +392,10 @@ export const DataProvider = ({ children }) => {
     try {
       const data = typeof json === 'string' ? JSON.parse(json) : json;
       if (data.projects) setProjects(data.projects);
-      if (data.blogPosts) setBlogPosts(data.blogPosts);
+      if (data.blogPosts) {
+        const arr = Array.isArray(data.blogPosts) ? data.blogPosts : [];
+        setBlogPosts(arr.map(normalizeBlogPost));
+      }
       if (data.aboutInfo) setAboutInfo(data.aboutInfo);
       if (data.siteNotice) setSiteNotice(data.siteNotice);
       if (data.language) setLanguage(data.language);
