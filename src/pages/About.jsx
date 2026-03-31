@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Github, Mail, Briefcase, GraduationCap, MessageCircle, X } from 'lucide-react';
+import { Github, Mail, MessageCircle, X } from 'lucide-react';
 import { useData, useTranslation } from '../context/DataContext';
 
 const About = () => {
@@ -81,77 +81,19 @@ const About = () => {
         </div>
       )}
 
-      {/* Background Section */}
-      <section className="mb-24 bg-white border border-border-soft rounded-[3rem] p-12 shadow-xl shadow-brand/5 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
-        <h2 className="text-3xl font-black text-text-main mb-10 flex items-center tracking-tight">
-          <span className="w-3 h-10 bg-brand rounded-full mr-5 shadow-lg shadow-brand/20" />
-          {t('about.background')}
-        </h2>
-        <div className="space-y-8 text-text-main/80 leading-relaxed text-lg font-medium">
-          {aboutInfo.background.map((para, idx) => (
-            <p key={idx}>{para}</p>
-          ))}
-        </div>
-      </section>
-
-      {/* Experience Section */}
-      <section className="mb-24 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-400">
-        <div className="flex items-center space-x-6 mb-12 px-6">
-          <div className="p-4 bg-brand/10 rounded-[1.5rem] shadow-lg shadow-brand/5">
-            <Briefcase className="w-8 h-8 text-brand" />
-          </div>
-          <h2 className="text-3xl font-black text-text-main tracking-tight">{t('about.experience')}</h2>
-        </div>
-        
-        <div className="space-y-16 border-l-4 border-bg-main ml-12 pl-12 relative">
-          {aboutInfo.experiences.map((exp, idx) => (
-            <div key={idx} className="relative group animate-in fade-in slide-in-from-left-4 duration-700" style={{ transitionDelay: `${600 + idx * 100}ms` }}>
-              <div className="absolute -left-[66px] top-2 w-8 h-8 rounded-full bg-white border-8 border-brand shadow-xl shadow-brand/20 group-hover:scale-125 transition-transform duration-500 z-10" />
-              <div className="mb-4">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-4">
-                  <h3 className="text-2xl font-black text-text-main group-hover:text-brand transition-colors duration-300 tracking-tight">
-                    {exp.company}
-                  </h3>
-                  <span className="inline-flex px-4 py-1.5 bg-brand/5 border border-brand/10 rounded-full text-xs font-black text-brand uppercase tracking-widest shadow-sm">
-                    {exp.period}
-                  </span>
-                </div>
-                <p className="text-lg font-bold text-brand/80 mb-6 uppercase tracking-wider">{exp.role}</p>
-                <p className="text-text-muted leading-relaxed font-medium text-lg bg-bg-main/30 p-6 rounded-[2rem] border border-border-soft group-hover:border-brand/20 group-hover:bg-white group-hover:shadow-xl group-hover:shadow-brand/5 transition-all duration-500">
-                  {exp.description}
-                </p>
+      {/* Highlights Cards */}
+      <section className="animate-in fade-in slide-in-from-bottom-10 duration-700 delay-150">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {(aboutInfo.highlights || []).map((card) => (
+            <div
+              key={card.id}
+              className="bg-white border border-border-soft rounded-2xl p-7 text-center shadow-sm hover:shadow-lg hover:shadow-brand/5 transition-all"
+            >
+              <div className="text-4xl font-black text-text-main tracking-tight">
+                {card.value}
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Education Section */}
-      <section className="animate-in fade-in slide-in-from-bottom-16 duration-1000 delay-600">
-        <div className="flex items-center space-x-6 mb-12 px-6">
-          <div className="p-4 bg-brand/10 rounded-[1.5rem] shadow-lg shadow-brand/5">
-            <GraduationCap className="w-8 h-8 text-brand" />
-          </div>
-          <h2 className="text-3xl font-black text-text-main tracking-tight">{t('about.education')}</h2>
-        </div>
-        
-        <div className="space-y-16 border-l-4 border-bg-main ml-12 pl-12 relative">
-          {aboutInfo.education.map((edu, idx) => (
-            <div key={idx} className="relative group animate-in fade-in slide-in-from-left-4 duration-700" style={{ transitionDelay: `${800 + idx * 100}ms` }}>
-              <div className="absolute -left-[66px] top-2 w-8 h-8 rounded-full bg-white border-8 border-brand shadow-xl shadow-brand/20 group-hover:scale-125 transition-transform duration-500 z-10" />
-              <div className="mb-4">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-4">
-                  <h3 className="text-2xl font-black text-text-main group-hover:text-brand transition-colors duration-300 tracking-tight">
-                    {edu.school}
-                  </h3>
-                  <span className="inline-flex px-4 py-1.5 bg-brand/5 border border-brand/10 rounded-full text-xs font-black text-brand uppercase tracking-widest shadow-sm">
-                    {edu.period}
-                  </span>
-                </div>
-                <p className="text-lg font-bold text-brand/80 mb-6 uppercase tracking-wider">{edu.degree}</p>
-                <p className="text-text-muted leading-relaxed font-medium text-lg bg-bg-main/30 p-6 rounded-[2rem] border border-border-soft group-hover:border-brand/20 group-hover:bg-white group-hover:shadow-xl group-hover:shadow-brand/5 transition-all duration-500">
-                  {edu.description}
-                </p>
+              <div className="mt-2 text-sm font-semibold text-text-muted">
+                {card.label}
               </div>
             </div>
           ))}

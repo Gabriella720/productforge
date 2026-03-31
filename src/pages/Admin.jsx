@@ -959,14 +959,11 @@ const BlogEditor = ({ post, onSave, onCancel }) => {
 };
 
 const AboutManager = ({ info, onUpdate }) => {
-  const [formData, setFormData] = useState({ ...info, background: info.background.join('\n\n') });
+  const [formData, setFormData] = useState({ ...info, highlights: info.highlights || [] });
   const t = useTranslation();
 
   const handleSave = () => {
-    onUpdate({
-      ...formData,
-      background: formData.background.split('\n\n').filter(p => p.trim() !== '')
-    });
+    onUpdate({ ...formData });
     alert('About Me information saved successfully!');
   };
 
@@ -993,12 +990,49 @@ const AboutManager = ({ info, onUpdate }) => {
           <ImageUpload label="Profile Image" value={formData.profileImage} onChange={v => setFormData({...formData, profileImage: v})} />
           <ImageUpload label="WeChat QR Code" value={formData.socials.wechat} onChange={v => setFormData({...formData, socials: {...formData.socials, wechat: v}})} />
           <div className="md:col-span-2">
-            <label className="block text-sm font-semibold text-text-main mb-3">Background (use double newlines for paragraphs)</label>
-            <textarea 
-              value={formData.background}
-              onChange={e => setFormData({...formData, background: e.target.value})}
-              className="w-full px-5 py-4 bg-white border border-border-soft rounded-2xl focus:ring-2 focus:ring-brand/10 focus:border-brand outline-none h-64 transition-all text-text-main"
-            />
+            <label className="block text-sm font-semibold text-text-main mb-3">Highlights (Cards)</label>
+            <div className="space-y-4">
+              {(formData.highlights || []).map((card, idx) => (
+                <div key={card.id || idx} className="grid grid-cols-1 md:grid-cols-12 gap-4 p-4 bg-white border border-border-soft rounded-2xl">
+                  <div className="md:col-span-4">
+                    <Input label="Value" value={card.value || ''} onChange={v => {
+                      const next = [...(formData.highlights || [])];
+                      next[idx] = { ...next[idx], value: v };
+                      setFormData({ ...formData, highlights: next });
+                    }} />
+                  </div>
+                  <div className="md:col-span-7">
+                    <Input label="Label" value={card.label || ''} onChange={v => {
+                      const next = [...(formData.highlights || [])];
+                      next[idx] = { ...next[idx], label: v };
+                      setFormData({ ...formData, highlights: next });
+                    }} />
+                  </div>
+                  <div className="md:col-span-1 flex items-end">
+                    <button
+                      onClick={() => {
+                        const next = (formData.highlights || []).filter((_, i) => i !== idx);
+                        setFormData({ ...formData, highlights: next });
+                      }}
+                      className="w-full px-3 py-3 text-red-500 hover:bg-red-50 rounded-2xl font-semibold transition-all"
+                    >
+                      <Trash2 className="w-4 h-4 mx-auto" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <button
+                onClick={() => {
+                  const next = [...(formData.highlights || [])];
+                  next.push({ id: Date.now(), value: '', label: '' });
+                  setFormData({ ...formData, highlights: next });
+                }}
+                className="inline-flex items-center px-5 py-3 bg-white border border-border-soft rounded-2xl text-text-main font-semibold hover:border-brand/30 hover:bg-brand/5 transition-all"
+              >
+                <Plus className="w-4 h-4 mr-2 text-brand" />
+                Add Card
+              </button>
+            </div>
           </div>
           <Input label="GitHub Link" value={formData.socials.github} onChange={v => setFormData({...formData, socials: {...formData.socials, github: v}})} />
           <Input label="Email Link" value={formData.socials.email} onChange={v => setFormData({...formData, socials: {...formData.socials, email: v}})} />

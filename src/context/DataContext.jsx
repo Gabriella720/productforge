@@ -116,44 +116,10 @@ const initialAboutInfo = {
   role: "AI Researcher & Machine Learning Engineer specializing in deep learning, computer vision, and natural language processing.",
   tagline: "Product Manager, AI Builder, try to build an awesome Life",
   profileImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=300",
-  background: [
-    "I am a passionate AI researcher and machine learning engineer with a focus on developing innovative solutions that push the boundaries of artificial intelligence. My work spans multiple domains including computer vision, natural language processing, and reinforcement learning.",
-    "With extensive experience in designing and implementing deep learning systems, I have contributed to projects ranging from real-time object detection systems to large-scale language model fine-tuning. My research interests lie at the intersection of theory and practical applications, always seeking to bridge the gap between cutting-edge research and real-world deployment.",
-    "I believe in the transformative power of AI and am committed to developing technologies that are not only powerful but also responsible, ethical, and beneficial to society."
-  ],
-  experiences: [
-    {
-      title: "Senior AI Research Engineer",
-      company: "AI Research Lab",
-      date: "2024 - Present",
-      description: "Leading research initiatives in large language models and multimodal AI systems. Developing novel architectures for efficient training and inference."
-    },
-    {
-      title: "Machine Learning Engineer",
-      company: "Tech Innovation Corp",
-      date: "2022 - 2024",
-      description: "Designed and deployed computer vision systems for production environments. Optimized model performance and reduced inference latency by 60%."
-    },
-    {
-      title: "AI Research Intern",
-      company: "Deep Learning Institute",
-      date: "2021 - 2022",
-      description: "Conducted research on reinforcement learning algorithms. Published findings in peer-reviewed conferences and journals."
-    }
-  ],
-  education: [
-    {
-      degree: "Ph.D. in Computer Science",
-      school: "University of Technology",
-      date: "2020 - 2024",
-      focus: "Deep Learning & Neural Networks"
-    },
-    {
-      degree: "M.S. in Artificial Intelligence",
-      school: "Institute of Advanced Computing",
-      date: "2018 - 2020",
-      focus: "Machine Learning & Data Science"
-    }
+  highlights: [
+    { id: 1, value: "80+", label: "Products Served" },
+    { id: 2, value: "3 Years", label: "Practical Experience" },
+    { id: 3, value: "Significant", label: "Business Growth Results" }
   ],
   socials: {
     github: "#",
@@ -163,6 +129,23 @@ const initialAboutInfo = {
 };
 
 export const DataProvider = ({ children }) => {
+  const normalizeAboutInfo = (info) => {
+    const base = info && typeof info === 'object' ? info : {};
+    const highlightsRaw = Array.isArray(base.highlights) ? base.highlights : [];
+    const highlights = (highlightsRaw.length ? highlightsRaw : initialAboutInfo.highlights).map((h, idx) => ({
+      id: typeof h.id === 'number' ? h.id : (Date.now() + idx),
+      value: (h.value ?? '').toString(),
+      label: (h.label ?? '').toString(),
+    }));
+
+    return {
+      ...initialAboutInfo,
+      ...base,
+      highlights,
+      socials: { ...initialAboutInfo.socials, ...(base.socials || {}) },
+    };
+  };
+
   const [projects, setProjects] = useState(() => {
     const saved = localStorage.getItem('projects');
     return saved ? JSON.parse(saved) : initialProjects;
@@ -175,7 +158,7 @@ export const DataProvider = ({ children }) => {
 
   const [aboutInfo, setAboutInfo] = useState(() => {
     const saved = localStorage.getItem('aboutInfo');
-    return saved ? JSON.parse(saved) : initialAboutInfo;
+    return normalizeAboutInfo(saved ? JSON.parse(saved) : initialAboutInfo);
   });
 
   const [isAdmin, setIsAdmin] = useState(() => {
@@ -208,7 +191,7 @@ export const DataProvider = ({ children }) => {
   }, [blogPosts]);
 
   useEffect(() => {
-    localStorage.setItem('aboutInfo', JSON.stringify(aboutInfo));
+    localStorage.setItem('aboutInfo', JSON.stringify(normalizeAboutInfo(aboutInfo)));
   }, [aboutInfo]);
 
   useEffect(() => {
@@ -228,7 +211,7 @@ export const DataProvider = ({ children }) => {
   };
 
   const updateAboutInfo = (newInfo) => {
-    setAboutInfo(newInfo);
+    setAboutInfo(normalizeAboutInfo(newInfo));
   };
 
   const addProject = (project) => {
