@@ -487,6 +487,19 @@ const ProjectManager = ({ projects, onAdd, onUpdate, onDelete }) => {
   const [isAdding, setIsAdding] = useState(false);
   const t = useTranslation();
 
+  const normalizeExternalUrl = (raw) => {
+    const v = (raw || '').trim();
+    if (!v || v === '#') return '';
+    const unhash = v.replace(/^#+/, '');
+    if (!unhash) return '';
+    if (/^https?:\/\//i.test(unhash)) return unhash;
+    if (/^(mailto:|tel:)/i.test(unhash)) return unhash;
+    if (unhash.startsWith('/')) return unhash;
+    if (/^www\./i.test(unhash)) return `https://${unhash}`;
+    if (/^[a-z0-9.-]+\.[a-z]{2,}/i.test(unhash)) return `https://${unhash}`;
+    return unhash;
+  };
+
   const startEdit = (project) => {
     setEditingId(project.id);
     setFormData({ ...project, tags: project.tags.join(', ') });
@@ -502,6 +515,8 @@ const ProjectManager = ({ projects, onAdd, onUpdate, onDelete }) => {
   const handleSave = () => {
     const projectData = {
       ...formData,
+      demoUrl: normalizeExternalUrl(formData.demoUrl),
+      codeUrl: normalizeExternalUrl(formData.codeUrl),
       tags: typeof formData.tags === 'string' ? formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '') : formData.tags
     };
 

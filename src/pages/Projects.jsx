@@ -6,6 +6,19 @@ const Projects = () => {
   const { projects } = useData();
   const t = useTranslation();
 
+  const normalizeExternalUrl = (raw) => {
+    const v = (raw || '').trim();
+    if (!v || v === '#') return '';
+    const unhash = v.replace(/^#+/, '');
+    if (!unhash) return '';
+    if (/^https?:\/\//i.test(unhash)) return unhash;
+    if (/^(mailto:|tel:)/i.test(unhash)) return unhash;
+    if (unhash.startsWith('/')) return unhash;
+    if (/^www\./i.test(unhash)) return `https://${unhash}`;
+    if (/^[a-z0-9.-]+\.[a-z]{2,}/i.test(unhash)) return `https://${unhash}`;
+    return unhash;
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 pt-16 pb-24">
       <div className="mb-20">
@@ -59,9 +72,9 @@ const Projects = () => {
               </p>
               
               <div className="flex items-center space-x-8 pt-8 border-t border-border-soft">
-                {project.codeUrl && project.codeUrl !== "#" && (
+                {normalizeExternalUrl(project.codeUrl) && (
                   <a 
-                    href={project.codeUrl}
+                    href={normalizeExternalUrl(project.codeUrl)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center text-sm font-bold text-text-main hover:text-brand transition-colors duration-300"
@@ -70,9 +83,9 @@ const Projects = () => {
                     {t('projects.code') || 'Code'}
                   </a>
                 )}
-                {project.demoUrl && project.demoUrl !== "#" && (
+                {normalizeExternalUrl(project.demoUrl) && (
                   <a 
-                    href={project.demoUrl}
+                    href={normalizeExternalUrl(project.demoUrl)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center text-sm font-bold text-text-main hover:text-brand transition-colors duration-300"
