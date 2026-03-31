@@ -406,12 +406,30 @@ const DataBackup = () => {
 
 const ImageUpload = ({ label, value, onChange }) => {
   const fileInputRef = useRef(null);
+  const [textValue, setTextValue] = useState(value || '');
+
+  useEffect(() => {
+    setTextValue(value || '');
+  }, [value]);
+
+  const normalizeUrl = (raw) => {
+    const v = (raw || '').trim();
+    if (!v) return '';
+    if (v.startsWith('data:') || v.startsWith('blob:') || v.startsWith('http://') || v.startsWith('https://')) return v;
+    const base = import.meta.env.BASE_URL || '/';
+    let p = v.replace(/^\/?public\//, '');
+    if (p.startsWith(base)) return p;
+    p = p.replace(/^\/+/, '');
+    if (base.endsWith('/')) return `${base}${p}`;
+    return `${base}/${p}`;
+  };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
+        setTextValue(reader.result);
         onChange(reader.result);
       };
       reader.readAsDataURL(file);
@@ -425,10 +443,15 @@ const ImageUpload = ({ label, value, onChange }) => {
         <div className="flex-grow">
           <input 
             type="text"
-            value={value}
-            onChange={e => onChange(e.target.value)}
+            value={textValue}
+            onChange={e => setTextValue(e.target.value)}
+            onBlur={() => {
+              const next = normalizeUrl(textValue);
+              setTextValue(next);
+              onChange(next);
+            }}
             className="w-full px-4 py-2 bg-white border border-border-soft rounded-xl focus:ring-2 focus:ring-brand/10 focus:border-brand outline-none transition-all mb-3 text-text-main"
-            placeholder="Image URL or upload local file"
+            placeholder="Image URL (https://...) or /productforge/uploads/filename.png"
           />
           <input 
             type="file"
@@ -445,12 +468,12 @@ const ImageUpload = ({ label, value, onChange }) => {
             Upload Local Image
           </button>
           <p className="mt-2 text-[10px] text-text-muted font-medium">
-            Tip: For production, manually place images in <code className="bg-bg-main px-1 rounded">public/uploads/</code> and use <code className="bg-bg-main px-1 rounded">/uploads/filename.jpg</code>
+            Tip: For GitHub Pages, put images in <code className="bg-bg-main px-1 rounded">public/uploads/</code> and use <code className="bg-bg-main px-1 rounded">/productforge/uploads/filename.png</code> (do not include <code className="bg-bg-main px-1 rounded">public/</code>)
           </p>
         </div>
-        {value && (
+        {textValue && (
           <div className="w-24 h-24 border border-border-soft rounded-xl overflow-hidden flex-shrink-0 bg-bg-main shadow-sm">
-            <img src={value} alt="Preview" className="w-full h-full object-cover" />
+            <img src={normalizeUrl(textValue)} alt="Preview" className="w-full h-full object-cover" />
           </div>
         )}
       </div>
