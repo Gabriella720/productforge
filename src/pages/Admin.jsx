@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useData, useTranslation } from '../context/DataContext';
 import { 
   Plus, Trash2, Edit2, Save, X, LogOut, Layout, 
-  BookOpen, User, Upload, Download, Image as ImageIcon, ArrowLeft,
+  BookOpen, User, Upload, Download, Megaphone, Image as ImageIcon, ArrowLeft,
   ChevronLeft, Eye, BarChart3, TrendingUp, Users, MousePointer2, Clock, Globe
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -43,6 +43,7 @@ const Admin = () => {
     projects, addProject, updateProject, deleteProject,
     blogPosts, addBlogPost, updateBlogPost, deleteBlogPost,
     aboutInfo, updateAboutInfo,
+    siteNotice, updateSiteNotice,
     analytics,
     logout 
   } = useData();
@@ -63,6 +64,7 @@ const Admin = () => {
     { id: 'projects', label: t('admin.manageProjects'), icon: <Layout className="w-4 h-4 mr-2" /> },
     { id: 'blog', label: t('admin.manageBlog'), icon: <BookOpen className="w-4 h-4 mr-2" /> },
     { id: 'about', label: t('admin.manageAbout'), icon: <User className="w-4 h-4 mr-2" /> },
+    { id: 'notice', label: 'Notice', icon: <Megaphone className="w-4 h-4 mr-2" /> },
     { id: 'analytics', label: t('admin.analytics'), icon: <BarChart3 className="w-4 h-4 mr-2" /> },
     { id: 'backup', label: 'Data Backup', icon: <Download className="w-4 h-4 mr-2" /> },
   ];
@@ -148,6 +150,9 @@ const Admin = () => {
                 info={aboutInfo} 
                 onUpdate={updateAboutInfo} 
               />
+            )}
+            {activeTab === 'notice' && (
+              <NoticeManager notice={siteNotice} onUpdate={updateSiteNotice} />
             )}
             {activeTab === 'analytics' && (
               <AnalyticsDashboard analytics={analytics} />
@@ -1052,6 +1057,68 @@ const AboutManager = ({ info, onUpdate }) => {
           </div>
           <Input label="GitHub Link" value={formData.socials.github} onChange={v => setFormData({...formData, socials: {...formData.socials, github: v}})} />
           <Input label="Email Link" value={formData.socials.email} onChange={v => setFormData({...formData, socials: {...formData.socials, email: v}})} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const NoticeManager = ({ notice, onUpdate }) => {
+  const [formData, setFormData] = useState({ ...notice });
+  const t = useTranslation();
+
+  const handleSave = () => {
+    onUpdate({
+      enabled: !!formData.enabled,
+      zh: formData.zh || '',
+      en: formData.en || ''
+    });
+    alert('Notice saved successfully!');
+  };
+
+  return (
+    <div className="space-y-8">
+      <div className="flex justify-between items-center px-2">
+        <h2 className="text-xl font-bold text-text-main">Notice</h2>
+        <button
+          onClick={handleSave}
+          className="flex items-center px-6 py-2.5 bg-brand text-white rounded-xl text-sm font-semibold hover:bg-brand-hover transition-all shadow-md hover:shadow-brand/20 active:scale-95"
+        >
+          <Save className="w-4 h-4 mr-2" />
+          {t('admin.saveChanges')}
+        </button>
+      </div>
+
+      <div className="bg-bg-main/50 p-8 rounded-[2rem] border border-border-soft space-y-6">
+        <label className="flex items-center space-x-3 text-sm font-semibold text-text-main">
+          <input
+            type="checkbox"
+            checked={!!formData.enabled}
+            onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })}
+            className="w-4 h-4 accent-[#3B82F6]"
+          />
+          <span>Enable announcement on Home</span>
+        </label>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-semibold text-text-main mb-3">中文公告</label>
+            <textarea
+              value={formData.zh || ''}
+              onChange={(e) => setFormData({ ...formData, zh: e.target.value })}
+              className="w-full px-5 py-4 bg-white border border-border-soft rounded-2xl focus:ring-2 focus:ring-brand/10 focus:border-brand outline-none h-36 transition-all text-text-main resize-none"
+              placeholder="网站正在更新中，部分内容尚未更新。"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-text-main mb-3">English Notice</label>
+            <textarea
+              value={formData.en || ''}
+              onChange={(e) => setFormData({ ...formData, en: e.target.value })}
+              className="w-full px-5 py-4 bg-white border border-border-soft rounded-2xl focus:ring-2 focus:ring-brand/10 focus:border-brand outline-none h-36 transition-all text-text-main resize-none"
+              placeholder="The website is under updates. Some content may be incomplete."
+            />
+          </div>
         </div>
       </div>
     </div>

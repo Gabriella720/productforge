@@ -128,6 +128,13 @@ const initialAboutInfo = {
   }
 };
 
+const initialSiteNotice = {
+  id: 1,
+  enabled: true,
+  zh: "网站正在更新中，部分内容尚未更新。",
+  en: "The website is under updates. Some content may be incomplete."
+};
+
 export const DataProvider = ({ children }) => {
   const normalizeAboutInfo = (info) => {
     const base = info && typeof info === 'object' ? info : {};
@@ -148,6 +155,18 @@ export const DataProvider = ({ children }) => {
     };
   };
 
+  const normalizeSiteNotice = (notice) => {
+    const base = notice && typeof notice === 'object' ? notice : {};
+    return {
+      ...initialSiteNotice,
+      ...base,
+      id: typeof base.id === 'number' ? base.id : initialSiteNotice.id,
+      enabled: typeof base.enabled === 'boolean' ? base.enabled : initialSiteNotice.enabled,
+      zh: typeof base.zh === 'string' ? base.zh : initialSiteNotice.zh,
+      en: typeof base.en === 'string' ? base.en : initialSiteNotice.en
+    };
+  };
+
   const [projects, setProjects] = useState(() => {
     const saved = localStorage.getItem('projects');
     return saved ? JSON.parse(saved) : initialProjects;
@@ -161,6 +180,11 @@ export const DataProvider = ({ children }) => {
   const [aboutInfo, setAboutInfo] = useState(() => {
     const saved = localStorage.getItem('aboutInfo');
     return normalizeAboutInfo(saved ? JSON.parse(saved) : initialAboutInfo);
+  });
+
+  const [siteNotice, setSiteNotice] = useState(() => {
+    const saved = localStorage.getItem('siteNotice');
+    return normalizeSiteNotice(saved ? JSON.parse(saved) : initialSiteNotice);
   });
 
   const [isAdmin, setIsAdmin] = useState(() => {
@@ -197,6 +221,10 @@ export const DataProvider = ({ children }) => {
   }, [aboutInfo]);
 
   useEffect(() => {
+    localStorage.setItem('siteNotice', JSON.stringify(normalizeSiteNotice(siteNotice)));
+  }, [siteNotice]);
+
+  useEffect(() => {
     localStorage.setItem('isAdmin', isAdmin);
   }, [isAdmin]);
 
@@ -214,6 +242,10 @@ export const DataProvider = ({ children }) => {
 
   const updateAboutInfo = (newInfo) => {
     setAboutInfo(normalizeAboutInfo(newInfo));
+  };
+
+  const updateSiteNotice = (notice) => {
+    setSiteNotice(normalizeSiteNotice({ ...notice, id: Date.now() }));
   };
 
   const addProject = (project) => {
@@ -317,6 +349,7 @@ export const DataProvider = ({ children }) => {
       projects,
       blogPosts,
       aboutInfo,
+      siteNotice,
       language
     };
     return JSON.stringify(payload, null, 2);
@@ -328,6 +361,7 @@ export const DataProvider = ({ children }) => {
       if (data.projects) setProjects(data.projects);
       if (data.blogPosts) setBlogPosts(data.blogPosts);
       if (data.aboutInfo) setAboutInfo(data.aboutInfo);
+      if (data.siteNotice) setSiteNotice(data.siteNotice);
       if (data.language) setLanguage(data.language);
       return true;
     } catch {
@@ -341,6 +375,7 @@ export const DataProvider = ({ children }) => {
       blogPosts, addBlogPost, updateBlogPost, deleteBlogPost,
       addComment, incrementLike, incrementShare, incrementView,
       aboutInfo, updateAboutInfo,
+      siteNotice, updateSiteNotice,
       isAdmin, login, logout,
       language, setLanguage,
       analytics, recordVisit,

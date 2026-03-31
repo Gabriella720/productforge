@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useData, useTranslation } from '../context/DataContext';
-import { LogOut, Settings, Languages } from 'lucide-react';
+import { LogOut, Megaphone, Settings, Languages, X } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 
 const Logo = () => (
@@ -13,8 +13,18 @@ const Logo = () => (
 const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAdmin, logout, language, setLanguage } = useData();
+  const { isAdmin, logout, language, setLanguage, siteNotice } = useData();
   const t = useTranslation();
+  const [dismissed, setDismissed] = useState(() => {
+    const saved = localStorage.getItem('dismissedSiteNoticeId');
+    return saved ? parseInt(saved, 10) : null;
+  });
+
+  useEffect(() => {
+    const saved = localStorage.getItem('dismissedSiteNoticeId');
+    const v = saved ? parseInt(saved, 10) : null;
+    setDismissed(v);
+  }, [siteNotice?.id]);
   
   const navItems = [
     { name: t('nav.projects'), path: '/projects' },
@@ -32,7 +42,7 @@ const Header = () => {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md border-b border-border-soft z-50 transition-all duration-300">
+    <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md border-b border-border-soft z-50 transition-all duration-300 relative">
       <div className="max-w-6xl mx-auto px-4 h-20 flex items-center justify-between">
         <Link to="/" className="flex items-center space-x-4 group">
           <Logo />
@@ -98,6 +108,33 @@ const Header = () => {
           </div>
         </nav>
       </div>
+      {location.pathname === '/' && siteNotice?.enabled && dismissed !== siteNotice?.id && (
+        <div className="absolute left-0 right-0 top-full">
+          <div className="bg-brand/5 border-b border-border-soft">
+            <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-brand/10 text-brand text-xs font-black tracking-widest shrink-0">
+                  <Megaphone className="w-3.5 h-3.5" />
+                  {language === 'zh' ? '公告' : 'NOTICE'}
+                </span>
+                <div className="text-sm font-semibold text-text-main/90 break-words leading-snug">
+                  {language === 'zh' ? siteNotice.zh : siteNotice.en}
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  localStorage.setItem('dismissedSiteNoticeId', String(siteNotice.id));
+                  setDismissed(siteNotice.id);
+                }}
+                className="p-2 rounded-xl text-text-muted hover:text-text-main hover:bg-white/60 transition-all shrink-0"
+                title={language === 'zh' ? '关闭' : 'Close'}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };
