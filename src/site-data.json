@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-04-01T12:56:19.645Z",
+  "exportedAt": "2026-04-01T12:58:03.859Z",
   "projects": [
     {
       "id": 1,
@@ -122,21 +122,21 @@
         "id": 1,
         "value": "4+",
         "label": "Data System Build",
-        "valueFontSize": 40,
+        "valueFontSize": 30,
         "labelFontSize": 14
       },
       {
         "id": 2,
         "value": "10 Years",
         "label": "Data Experince ",
-        "valueFontSize": 40,
+        "valueFontSize": 30,
         "labelFontSize": 14
       },
       {
         "id": 3,
         "value": "2 Roles",
         "label": "Product Manager, Engineer",
-        "valueFontSize": 4040,
+        "valueFontSize": 30,
         "labelFontSize": 14
       }
     ],
