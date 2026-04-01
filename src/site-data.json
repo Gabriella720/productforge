@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "exportedAt": "2026-04-01T12:27:17.573Z",
+  "exportedAt": "2026-04-01T12:28:32.462Z",
   "projects": [
     {
       "id": 1,
-      "title": "Neural Style Transfer Application",
+      "title": "Ad Analysis Skill ",
       "description": "A deep learning application that applies artistic styles to photographs using convolutional neural networks. Implemented with TensorFlow and optimized for real-time processing.",
       "tags": [
         "Deep Learning",
@@ -13,8 +13,8 @@
         "Python"
       ],
       "image": "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800",
-      "codeUrl": "#",
-      "demoUrl": "#"
+      "codeUrl": "",
+      "demoUrl": ""
     },
     {
       "id": 2,
