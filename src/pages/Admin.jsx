@@ -344,6 +344,44 @@ const DataBackup = () => {
   const { exportData, importData } = useData();
   const [message, setMessage] = useState('');
   const fileInputRef = useRef(null);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [ghToken, setGhToken] = useState(() => sessionStorage.getItem('ghToken') || '');
+  const [ghOwner, setGhOwner] = useState(() => localStorage.getItem('ghOwner') || '');
+  const [ghRepo, setGhRepo] = useState(() => localStorage.getItem('ghRepo') || '');
+  const [ghBranch, setGhBranch] = useState(() => localStorage.getItem('ghBranch') || 'main');
+  const [ghPath, setGhPath] = useState(() => localStorage.getItem('ghPath') || 'src/site-data.json');
+
+  useEffect(() => {
+    if (ghOwner && ghRepo) return;
+    try {
+      const host = window.location.host;
+      const path = window.location.pathname || '/';
+      if (host.endsWith('github.io')) {
+        const owner = host.replace(/\.github\.io$/, '');
+        const repo = path.split('/').filter(Boolean)[0] || '';
+        if (!ghOwner) setGhOwner(owner);
+        if (!ghRepo) setGhRepo(repo);
+      }
+    } catch {
+      // ignore
+    }
+  }, [ghOwner, ghRepo]);
+
+  useEffect(() => {
+    if (ghOwner) localStorage.setItem('ghOwner', ghOwner);
+  }, [ghOwner]);
+
+  useEffect(() => {
+    if (ghRepo) localStorage.setItem('ghRepo', ghRepo);
+  }, [ghRepo]);
+
+  useEffect(() => {
+    if (ghBranch) localStorage.setItem('ghBranch', ghBranch);
+  }, [ghBranch]);
+
+  useEffect(() => {
+    if (ghPath) localStorage.setItem('ghPath', ghPath);
+  }, [ghPath]);
 
   const handleExport = () => {
     const json = exportData();
@@ -366,6 +404,86 @@ const DataBackup = () => {
       setMessage(ok ? 'Import successful. Data updated locally.' : 'Import failed. Invalid JSON.');
     };
     reader.readAsText(file);
+  };
+
+  const base64EncodeUtf8 = (str) => {
+    const bytes = new TextEncoder().encode(str);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    return btoa(binary);
+  };
+
+  const publishToGitHub = async () => {
+    const token = (ghToken || '').trim();
+    const owner = (ghOwner || '').trim();
+    const repo = (ghRepo || '').trim();
+    const branch = (ghBranch || '').trim() || 'main';
+    const path = (ghPath || '').trim() || 'src/site-data.json';
+
+    if (!token) {
+      setMessage('Missing GitHub token.');
+      return;
+    }
+    if (!owner || !repo) {
+      setMessage('Missing owner/repo.');
+      return;
+    }
+
+    sessionStorage.setItem('ghToken', token);
+    setIsPublishing(true);
+    setMessage('');
+
+    try {
+      const content = exportData();
+      const apiPath = path.split('/').map(encodeURIComponent).join('/');
+      const getUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${apiPath}?ref=${encodeURIComponent(branch)}`;
+
+      let sha;
+      const getRes = await fetch(getUrl, {
+        headers: {
+          Accept: 'application/vnd.github+json',
+          Authorization: `Bearer ${token}`,
+          'X-GitHub-Api-Version': '2022-11-28'
+        }
+      });
+      if (getRes.ok) {
+        const existing = await getRes.json();
+        sha = existing?.sha;
+      }
+
+      const putUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${apiPath}`;
+      const putBody = {
+        message: `Update site data (${new Date().toISOString()})`,
+        content: base64EncodeUtf8(content),
+        branch
+      };
+      if (sha) putBody.sha = sha;
+
+      const putRes = await fetch(putUrl, {
+        method: 'PUT',
+        headers: {
+          Accept: 'application/vnd.github+json',
+          Authorization: `Bearer ${token}`,
+          'X-GitHub-Api-Version': '2022-11-28',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(putBody)
+      });
+
+      if (!putRes.ok) {
+        const text = await putRes.text();
+        setMessage(`Publish failed: ${putRes.status} ${text.slice(0, 200)}`);
+        return;
+      }
+
+      const result = await putRes.json();
+      const commitUrl = result?.commit?.html_url;
+      setMessage(commitUrl ? `Published. Commit: ${commitUrl}` : 'Published to GitHub successfully.');
+    } catch {
+      setMessage('Publish failed due to network or permission error.');
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   return (
@@ -399,6 +517,68 @@ const DataBackup = () => {
           Export 会下载当前浏览器本地的数据（项目、博客、关于我、语言）。Import 会覆盖当前浏览器的对应数据。
           图片建议使用公共 URL 或将文件放入仓库的 public/uploads 并使用 /productforge/uploads/文件名 的路径。
         </p>
+        <div className="bg-white p-6 rounded-2xl border border-border-soft space-y-4">
+          <div className="text-sm font-bold uppercase tracking-widest text-text-muted">Publish To GitHub</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-text-main mb-2">Owner</label>
+              <input
+                value={ghOwner}
+                onChange={e => setGhOwner(e.target.value)}
+                className="w-full px-4 py-2 bg-white border border-border-soft rounded-xl focus:ring-2 focus:ring-brand/10 focus:border-brand outline-none transition-all text-text-main"
+                placeholder="gabriella720"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-text-main mb-2">Repo</label>
+              <input
+                value={ghRepo}
+                onChange={e => setGhRepo(e.target.value)}
+                className="w-full px-4 py-2 bg-white border border-border-soft rounded-xl focus:ring-2 focus:ring-brand/10 focus:border-brand outline-none transition-all text-text-main"
+                placeholder="productforge"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-text-main mb-2">Branch</label>
+              <input
+                value={ghBranch}
+                onChange={e => setGhBranch(e.target.value)}
+                className="w-full px-4 py-2 bg-white border border-border-soft rounded-xl focus:ring-2 focus:ring-brand/10 focus:border-brand outline-none transition-all text-text-main"
+                placeholder="main"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-text-main mb-2">File Path</label>
+              <input
+                value={ghPath}
+                onChange={e => setGhPath(e.target.value)}
+                className="w-full px-4 py-2 bg-white border border-border-soft rounded-xl focus:ring-2 focus:ring-brand/10 focus:border-brand outline-none transition-all text-text-main"
+                placeholder="src/site-data.json"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-text-main mb-2">GitHub Token</label>
+            <input
+              value={ghToken}
+              onChange={e => setGhToken(e.target.value)}
+              className="w-full px-4 py-2 bg-white border border-border-soft rounded-xl focus:ring-2 focus:ring-brand/10 focus:border-brand outline-none transition-all text-text-main"
+              placeholder="ghp_... or github_pat_..."
+            />
+            <div className="mt-2 text-[11px] text-text-muted font-medium">
+              Token 仅保存在当前浏览器会话（sessionStorage），建议使用 Fine-grained token，仅授予该仓库 Contents: Read and write。
+            </div>
+          </div>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={publishToGitHub}
+              disabled={isPublishing}
+              className="px-6 py-3 bg-brand text-white rounded-xl font-semibold hover:bg-brand-hover transition-all disabled:opacity-60"
+            >
+              {isPublishing ? 'Publishing...' : 'Publish JSON to Repo'}
+            </button>
+          </div>
+        </div>
         {message && <div className="text-sm font-semibold text-brand">{message}</div>}
       </div>
     </div>
