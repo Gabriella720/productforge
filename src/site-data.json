@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-04-01T13:48:06.503Z",
+  "exportedAt": "2026-04-01T13:50:46.927Z",
   "projects": [
     {
       "id": 1,
@@ -89,20 +89,20 @@
     },
     {
       "id": 3,
-      "title": "Computer Vision Trends in 2026",
-      "description": "Latest developments in object detection, image segmentation, and the convergence of vision and language models for multimodal understanding.",
-      "content": "In 2026, computer vision has moved beyond simple classification. Multimodal models that bridge vision and language are now the standard, enabling more natural interaction with visual data. Techniques like Vision Transformers (ViT) have largely superseded traditional CNNs for large-scale tasks, and real-time 3D reconstruction from single images has become a practical reality for mobile devices.",
-      "date": "Mar 5, 2026",
+      "title": "Agent元年，向Manus学什么",
+      "description": "热度很高的Manus，学习一下Agent形态产品如何建设的思路",
+      "content": "<div data-page-id=\"UwPXdlWVio5xhoxm8xtcY0gMnAh\" data-lark-html-role=\"root\" data-docx-has-block-data=\"false\">\n<div class=\"ace-line ace-line old-record-id-JUE4dN5w6o1nOfxNlB3cTpkGnYe\"><span style=\"font-size: 14px;\">Manus的新闻是近期科技圈的头版头条，受到很多的关注。创始人也公布了产品在初创时期的一些讨论纪要以及产品发展的回顾总结，花时间把相关的产品信息都看了一遍。作为具有里程碑意义的AI产品，一些产品思路还是很有价值的，将自己get的要点沉淀成学习笔记。</span></div>\n<h3 class=\"heading-3 ace-line old-record-id-Kbx0dZ9HpouCDTxnNYzcwfr3nDf\"><span style=\"font-size: 16px;\">产品理念</span></h3>\n<div class=\"ace-line ace-line old-record-id-SyLEd9cgLo3V37xu38JcfL6BnWe\"><span style=\"font-size: 14px;\">产品定位是端到端的AI应用，能自主完成实际任务，交付结果。产品演化路径上优先做好通用化能力，再通过用户实际高频应用场景反推和加强垂直场景关联产品能力。通用化能力的边界我理解应该是大部分的任务都能拆解、执行的七七八八，复杂度较高的任务可能完成度比较低，推向用户后如果是高频的应用场景，就可以再优化完善。</span></div>\n<div class=\"ace-line ace-line old-record-id-P11od50z3oOShcxG7P1cj2cun1g\">&nbsp;</div>\n<div class=\"ace-line ace-line old-record-id-VrWvdsqepobNgnxc3fdcbllNndf\"><span style=\"font-size: 14px;\">产品架构的设计上，AI和人的协同交互比较自然和丝滑。AI产品要想有好的用户体验，这点是需要花时间想清楚的。之前看Granola的设计和Manus的有异曲同工之妙。Manus的主要思路是&ldquo;不要让AI和用户抢电脑&rdquo;，给Agent一个专用的虚拟机操作，不影响调用各种应用执行任务时用户对电脑的操作；而Granola的设计是AI和用户各自进行会议记录，最后融合用户的记录摘要。人原有的操作路径完整保留不受影响，AI作为一个优秀助手的体感会更强烈，人机交互自然更为流畅。</span></div>\n<div class=\"ace-line ace-line old-record-id-P0xYdQjDuonmRpx5IincdTfxnzd\">&nbsp;</div>\n<div class=\"ace-line ace-line old-record-id-Qso8d7wFpoPtx4xkmI3ctoXInph\"><span style=\"font-size: 14px;\">在人机交互方面，Manus平衡用户信任和可控度的方法是：产品界面左右两个窗口，左侧对话流，可随时发送新的需求；右侧Agent工作流，渐进式披露Agent执行过程信息。既能直观反馈出Agent工作的过程，提供给具备调试能力的工程师等随时接管的控制器，同时给不关注过程的普通用户较强的信任感。</span></div>\n<h3 class=\"heading-3 ace-line old-record-id-XU3QdBJe4oUjdSxPh3ZcALllnXc\"><span style=\"font-size: 16px;\">技术架构</span></h3>\n<div class=\"ace-line ace-line old-record-id-TTnedurqlojoC7xQKAAcixwMnbb\"><span style=\"font-size: 14px;\">好的产品设计+好的工程能力共同发力才是制胜之道。云端虚拟机和状态持久化能力，能较好实现&ldquo;给AI专属电脑&rdquo;的设计思路，便于AI能在云端环境调用各种工具执行任务，同时状态持久化，避免多次的登录操作，也能够具备更连贯的agency能力，而不是一次性买卖，AI助手应该是能持续发力的伙伴。技术架构上突破了Agent应用的一些切实痛点，为产品的成功奠定了基础。</span></div>\n<div class=\"ace-line ace-line old-record-id-LWtzdq9ZboHUbzxtRv6canO9nsg\">&nbsp;</div>\n<div class=\"ace-line ace-line old-record-id-CzYddLW7doEV8sxvDuKccQ4Dn7f\"><span style=\"font-size: 14px;\">Manus作为第一代Agent产品，对产品经理来说，其产品思维非常值得借鉴学习。对于什么的Agent，如何发挥出大模型的能力以解决实际问题，不停留在问答层面，给出了一个不错的解决方案，甚至应用层反哺了模型层的发展。2026年估计是AI应用层更多探索的一年，未来的竞争力在于AI是否能提供优于过往的解决方案。</span></div>\n</div>",
+      "date": "Apr 1, 2026",
       "views": 1896,
       "likes": 156,
       "shares": 35,
-      "image": "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&q=80&w=800",
+      "image": "https://cdn.jsdelivr.net/gh/Gabriella720/productforge/public/uploads/blog_manus.png",
       "comments": [],
       "i18n": {
         "en": {
-          "title": "Computer Vision Trends in 2026",
-          "description": "Latest developments in object detection, image segmentation, and the convergence of vision and language models for multimodal understanding.",
-          "content": "In 2026, computer vision has moved beyond simple classification. Multimodal models that bridge vision and language are now the standard, enabling more natural interaction with visual data. Techniques like Vision Transformers (ViT) have largely superseded traditional CNNs for large-scale tasks, and real-time 3D reconstruction from single images has become a practical reality for mobile devices."
+          "title": "Agent元年，向Manus学什么",
+          "description": "热度很高的Manus，学习一下Agent形态产品如何建设的思路",
+          "content": "<div data-page-id=\"UwPXdlWVio5xhoxm8xtcY0gMnAh\" data-lark-html-role=\"root\" data-docx-has-block-data=\"false\">\n<div class=\"ace-line ace-line old-record-id-JUE4dN5w6o1nOfxNlB3cTpkGnYe\"><span style=\"font-size: 14px;\">Manus的新闻是近期科技圈的头版头条，受到很多的关注。创始人也公布了产品在初创时期的一些讨论纪要以及产品发展的回顾总结，花时间把相关的产品信息都看了一遍。作为具有里程碑意义的AI产品，一些产品思路还是很有价值的，将自己get的要点沉淀成学习笔记。</span></div>\n<h3 class=\"heading-3 ace-line old-record-id-Kbx0dZ9HpouCDTxnNYzcwfr3nDf\"><span style=\"font-size: 16px;\">产品理念</span></h3>\n<div class=\"ace-line ace-line old-record-id-SyLEd9cgLo3V37xu38JcfL6BnWe\"><span style=\"font-size: 14px;\">产品定位是端到端的AI应用，能自主完成实际任务，交付结果。产品演化路径上优先做好通用化能力，再通过用户实际高频应用场景反推和加强垂直场景关联产品能力。通用化能力的边界我理解应该是大部分的任务都能拆解、执行的七七八八，复杂度较高的任务可能完成度比较低，推向用户后如果是高频的应用场景，就可以再优化完善。</span></div>\n<div class=\"ace-line ace-line old-record-id-P11od50z3oOShcxG7P1cj2cun1g\">&nbsp;</div>\n<div class=\"ace-line ace-line old-record-id-VrWvdsqepobNgnxc3fdcbllNndf\"><span style=\"font-size: 14px;\">产品架构的设计上，AI和人的协同交互比较自然和丝滑。AI产品要想有好的用户体验，这点是需要花时间想清楚的。之前看Granola的设计和Manus的有异曲同工之妙。Manus的主要思路是&ldquo;不要让AI和用户抢电脑&rdquo;，给Agent一个专用的虚拟机操作，不影响调用各种应用执行任务时用户对电脑的操作；而Granola的设计是AI和用户各自进行会议记录，最后融合用户的记录摘要。人原有的操作路径完整保留不受影响，AI作为一个优秀助手的体感会更强烈，人机交互自然更为流畅。</span></div>\n<div class=\"ace-line ace-line old-record-id-P0xYdQjDuonmRpx5IincdTfxnzd\">&nbsp;</div>\n<div class=\"ace-line ace-line old-record-id-Qso8d7wFpoPtx4xkmI3ctoXInph\"><span style=\"font-size: 14px;\">在人机交互方面，Manus平衡用户信任和可控度的方法是：产品界面左右两个窗口，左侧对话流，可随时发送新的需求；右侧Agent工作流，渐进式披露Agent执行过程信息。既能直观反馈出Agent工作的过程，提供给具备调试能力的工程师等随时接管的控制器，同时给不关注过程的普通用户较强的信任感。</span></div>\n<h3 class=\"heading-3 ace-line old-record-id-XU3QdBJe4oUjdSxPh3ZcALllnXc\"><span style=\"font-size: 16px;\">技术架构</span></h3>\n<div class=\"ace-line ace-line old-record-id-TTnedurqlojoC7xQKAAcixwMnbb\"><span style=\"font-size: 14px;\">好的产品设计+好的工程能力共同发力才是制胜之道。云端虚拟机和状态持久化能力，能较好实现&ldquo;给AI专属电脑&rdquo;的设计思路，便于AI能在云端环境调用各种工具执行任务，同时状态持久化，避免多次的登录操作，也能够具备更连贯的agency能力，而不是一次性买卖，AI助手应该是能持续发力的伙伴。技术架构上突破了Agent应用的一些切实痛点，为产品的成功奠定了基础。</span></div>\n<div class=\"ace-line ace-line old-record-id-LWtzdq9ZboHUbzxtRv6canO9nsg\">&nbsp;</div>\n<div class=\"ace-line ace-line old-record-id-CzYddLW7doEV8sxvDuKccQ4Dn7f\"><span style=\"font-size: 14px;\">Manus作为第一代Agent产品，对产品经理来说，其产品思维非常值得借鉴学习。对于什么的Agent，如何发挥出大模型的能力以解决实际问题，不停留在问答层面，给出了一个不错的解决方案，甚至应用层反哺了模型层的发展。2026年估计是AI应用层更多探索的一年，未来的竞争力在于AI是否能提供优于过往的解决方案。</span></div>\n</div>"
         },
         "zh": {
           "title": "Computer Vision Trends in 2026",
