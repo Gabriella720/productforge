@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-04-01T12:43:48.721Z",
+  "exportedAt": "2026-04-01T12:49:22.143Z",
   "projects": [
     {
       "id": 1,
@@ -12,22 +12,22 @@
         "Computer Vision",
         "Python"
       ],
-      "image": "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800",
+      "image": "/productforge/uploads/ad_analysis_skill.png",
       "codeUrl": "https://github.com/Gabriella720/Ad_Analysis_Skill.git",
       "demoUrl": "https://gabriella720.github.io/Ad_Analysis_Skill/"
     },
     {
       "id": 2,
-      "title": "Natural Language Processing Pipeline",
-      "description": "End-to-end NLP pipeline for sentiment analysis and text classification. Achieved 94% accuracy on multi-class classification tasks using transformer-based models.",
+      "title": "Intelligent Travel Planner",
+      "description": "Discover effortless travel planning with our AI-powered product. Whether you're exploring a new city or curating a dream vacation, our intelligent system tailors personalized itineraries just for you. Save time, reduce stress, and unlock the best experiences tailored to your interests.",
       "tags": [
-        "NLP",
-        "BERT",
-        "PyTorch",
-        "Transformers"
+        "Vibe coding",
+        "Agent",
+        "AI Product"
       ],
-      "image": "https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?auto=format&fit=crop&q=80&w=800",
-      "codeUrl": "#"
+      "image": "/productforge/uploads/project_travelplan.png",
+      "codeUrl": "https://github.com/Gabriella720/travel_planner.git",
+      "demoUrl": "https://gabriella720.github.io/travel_planner/"
     }
   ],
   "blogPosts": [
