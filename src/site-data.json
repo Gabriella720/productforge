@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-04-01T12:35:34.185Z",
+  "exportedAt": "2026-04-01T12:43:48.721Z",
   "projects": [
     {
       "id": 1,
@@ -113,9 +113,9 @@
     }
   ],
   "aboutInfo": {
-    "name": "Yusheng Jia",
-    "role": "AI Researcher & Machine Learning Engineer specializing in deep learning, computer vision, and natural language processing.",
-    "tagline": "Product Manager, AI Builder, try to build an awesome Life",
+    "name": "SunnyJ",
+    "role": "Product Manager, Data Expert,AI Builder.To build an awesome Life",
+    "tagline": "Product Manager, Data Expert,AI Builder.",
     "profileImage": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=300",
     "highlights": [
       {
