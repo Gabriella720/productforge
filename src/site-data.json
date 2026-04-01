@@ -1,10 +1,17 @@
 {
+  "version": 1,
+  "exportedAt": "2026-04-01T11:58:27.103Z",
   "projects": [
     {
       "id": 1,
       "title": "Neural Style Transfer Application",
       "description": "A deep learning application that applies artistic styles to photographs using convolutional neural networks. Implemented with TensorFlow and optimized for real-time processing.",
-      "tags": ["Deep Learning", "TensorFlow", "Computer Vision", "Python"],
+      "tags": [
+        "Deep Learning",
+        "TensorFlow",
+        "Computer Vision",
+        "Python"
+      ],
       "image": "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800",
       "codeUrl": "#",
       "demoUrl": "#"
@@ -13,7 +20,12 @@
       "id": 2,
       "title": "Natural Language Processing Pipeline",
       "description": "End-to-end NLP pipeline for sentiment analysis and text classification. Achieved 94% accuracy on multi-class classification tasks using transformer-based models.",
-      "tags": ["NLP", "BERT", "PyTorch", "Transformers"],
+      "tags": [
+        "NLP",
+        "BERT",
+        "PyTorch",
+        "Transformers"
+      ],
       "image": "https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?auto=format&fit=crop&q=80&w=800",
       "codeUrl": "#"
     }
@@ -37,7 +49,19 @@
           "content": "Great article! The explanation of multi-head attention was particularly clear. I've been implementing transformers in my research and this helped clarify some concepts.",
           "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=100"
         }
-      ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Understanding Transformer Architecture in Modern NLP",
+          "description": "A deep dive into the attention mechanism and how transformers revolutionized natural language processing tasks across various domains.",
+          "content": "The transformer architecture has fundamentally changed the landscape of natural language processing. Introduced in the seminal paper \"Attention Is All You Need\" by Vaswani et al., transformers have become the foundation for modern language models.\n\n### The Attention Mechanism\nAt the heart of the transformer is the self-attention mechanism, which allows the model to weigh the importance of different words in a sentence when processing each word. Unlike recurrent neural networks (RNNs), transformers can process all words in parallel, significantly speeding up training.\n\n### Key Components\nThe transformer consists of several key components:\n- **Multi-Head Attention**: Allows the model to focus on different aspects of the input simultaneously\n- **Position Encoding**: Provides information about word order since the model processes input in parallel\n- **Feed-Forward Networks**: Process the attention outputs through dense layers\n- **Layer Normalization**: Stabilizes training and improves convergence\n\n### Impact on Modern NLP\nTransformers have enabled the development of powerful models like BERT, GPT, and T5. These models have achieved state-of-the-art results across a wide range of NLP tasks, from question answering to text generation.\nThe scalability of transformers has also led to the era of large language models, with models containing billions of parameters demonstrating emergent capabilities in reasoning, coding, and creative tasks.\n\n### Conclusion\nUnderstanding transformer architecture is essential for anyone working in modern NLP. As the field continues to evolve, transformers remain the dominant paradigm, with ongoing research exploring ways to make them more efficient and capable."
+        },
+        "zh": {
+          "title": "Understanding Transformer Architecture in Modern NLP",
+          "description": "A deep dive into the attention mechanism and how transformers revolutionized natural language processing tasks across various domains.",
+          "content": "The transformer architecture has fundamentally changed the landscape of natural language processing. Introduced in the seminal paper \"Attention Is All You Need\" by Vaswani et al., transformers have become the foundation for modern language models.\n\n### The Attention Mechanism\nAt the heart of the transformer is the self-attention mechanism, which allows the model to weigh the importance of different words in a sentence when processing each word. Unlike recurrent neural networks (RNNs), transformers can process all words in parallel, significantly speeding up training.\n\n### Key Components\nThe transformer consists of several key components:\n- **Multi-Head Attention**: Allows the model to focus on different aspects of the input simultaneously\n- **Position Encoding**: Provides information about word order since the model processes input in parallel\n- **Feed-Forward Networks**: Process the attention outputs through dense layers\n- **Layer Normalization**: Stabilizes training and improves convergence\n\n### Impact on Modern NLP\nTransformers have enabled the development of powerful models like BERT, GPT, and T5. These models have achieved state-of-the-art results across a wide range of NLP tasks, from question answering to text generation.\nThe scalability of transformers has also led to the era of large language models, with models containing billions of parameters demonstrating emergent capabilities in reasoning, coding, and creative tasks.\n\n### Conclusion\nUnderstanding transformer architecture is essential for anyone working in modern NLP. As the field continues to evolve, transformers remain the dominant paradigm, with ongoing research exploring ways to make them more efficient and capable."
+        }
+      }
     },
     {
       "id": 2,
@@ -49,7 +73,19 @@
       "likes": 245,
       "shares": 68,
       "image": "https://images.unsplash.com/photo-1591453089816-0fbb971b454c?auto=format&fit=crop&q=80&w=800",
-      "comments": []
+      "comments": [],
+      "i18n": {
+        "en": {
+          "title": "Efficient Training Strategies for Large Language Models",
+          "description": "Exploring techniques like gradient accumulation, mixed precision training, and distributed computing for training state-of-the-art models.",
+          "content": "Training large language models (LLMs) requires immense computational resources. To make this process more efficient, researchers use several key strategies. Gradient accumulation allows for effectively larger batch sizes without increasing memory usage per step. Mixed precision training (using FP16 instead of FP32) speeds up computations and reduces memory footprint, while distributed data parallel (DDP) techniques allow training across hundreds or thousands of GPUs."
+        },
+        "zh": {
+          "title": "Efficient Training Strategies for Large Language Models",
+          "description": "Exploring techniques like gradient accumulation, mixed precision training, and distributed computing for training state-of-the-art models.",
+          "content": "Training large language models (LLMs) requires immense computational resources. To make this process more efficient, researchers use several key strategies. Gradient accumulation allows for effectively larger batch sizes without increasing memory usage per step. Mixed precision training (using FP16 instead of FP32) speeds up computations and reduces memory footprint, while distributed data parallel (DDP) techniques allow training across hundreds or thousands of GPUs."
+        }
+      }
     },
     {
       "id": 3,
@@ -61,7 +97,19 @@
       "likes": 156,
       "shares": 35,
       "image": "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&q=80&w=800",
-      "comments": []
+      "comments": [],
+      "i18n": {
+        "en": {
+          "title": "Computer Vision Trends in 2026",
+          "description": "Latest developments in object detection, image segmentation, and the convergence of vision and language models for multimodal understanding.",
+          "content": "In 2026, computer vision has moved beyond simple classification. Multimodal models that bridge vision and language are now the standard, enabling more natural interaction with visual data. Techniques like Vision Transformers (ViT) have largely superseded traditional CNNs for large-scale tasks, and real-time 3D reconstruction from single images has become a practical reality for mobile devices."
+        },
+        "zh": {
+          "title": "Computer Vision Trends in 2026",
+          "description": "Latest developments in object detection, image segmentation, and the convergence of vision and language models for multimodal understanding.",
+          "content": "In 2026, computer vision has moved beyond simple classification. Multimodal models that bridge vision and language are now the standard, enabling more natural interaction with visual data. Techniques like Vision Transformers (ViT) have largely superseded traditional CNNs for large-scale tasks, and real-time 3D reconstruction from single images has become a practical reality for mobile devices."
+        }
+      }
     }
   ],
   "aboutInfo": {
@@ -70,9 +118,27 @@
     "tagline": "Product Manager, AI Builder, try to build an awesome Life",
     "profileImage": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=300",
     "highlights": [
-      { "id": 1, "value": "80+", "label": "Products Served", "valueFontSize": 40, "labelFontSize": 14 },
-      { "id": 2, "value": "3 Years", "label": "Practical Experience", "valueFontSize": 40, "labelFontSize": 14 },
-      { "id": 3, "value": "Significant", "label": "Business Growth Results", "valueFontSize": 36, "labelFontSize": 14 }
+      {
+        "id": 1,
+        "value": "80+",
+        "label": "Products Served",
+        "valueFontSize": 40,
+        "labelFontSize": 14
+      },
+      {
+        "id": 2,
+        "value": "3 Years",
+        "label": "Practical Experience",
+        "valueFontSize": 40,
+        "labelFontSize": 14
+      },
+      {
+        "id": 3,
+        "value": "Significant",
+        "label": "Business Growth Results",
+        "valueFontSize": 36,
+        "labelFontSize": 14
+      }
     ],
     "socials": {
       "github": "#",
