@@ -38,6 +38,60 @@ import 'tinymce/skins/ui/oxide/skin.min.css';
 import 'tinymce/skins/ui/oxide/content.min.css';
 import 'tinymce/skins/content/default/content.min.css';
 
+const base64EncodeUtf8 = (str) => {
+  const bytes = new TextEncoder().encode(str);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+};
+
+const publishJsonToRepo = async ({ token, owner, repo, branch, path, content }) => {
+  const b = (branch || 'main').toString();
+  const p = (path || 'src/site-data.json').toString();
+  const apiPath = p.split('/').map(encodeURIComponent).join('/');
+  const repoUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
+  const getUrl = `${repoUrl}/contents/${apiPath}?ref=${encodeURIComponent(b)}`;
+
+  let sha;
+  const getRes = await fetch(getUrl, {
+    headers: {
+      Accept: 'application/vnd.github+json',
+      Authorization: `Bearer ${token}`,
+      'X-GitHub-Api-Version': '2022-11-28'
+    }
+  });
+  if (getRes.ok) {
+    const existing = await getRes.json();
+    sha = existing?.sha;
+  }
+
+  const putUrl = `${repoUrl}/contents/${apiPath}`;
+  const putBody = {
+    message: `Update site data (${new Date().toISOString()})`,
+    content: base64EncodeUtf8(content),
+    branch: b
+  };
+  if (sha) putBody.sha = sha;
+
+  const putRes = await fetch(putUrl, {
+    method: 'PUT',
+    headers: {
+      Accept: 'application/vnd.github+json',
+      Authorization: `Bearer ${token}`,
+      'X-GitHub-Api-Version': '2022-11-28',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(putBody)
+  });
+  if (!putRes.ok) {
+    const text = await putRes.text();
+    return { ok: false, error: `${putRes.status} ${text}` };
+  }
+
+  const result = await putRes.json();
+  return { ok: true, commitUrl: result?.commit?.html_url || '' };
+};
+
 const Admin = () => {
   const { 
     projects, addProject, updateProject, deleteProject,
@@ -45,11 +99,17 @@ const Admin = () => {
     aboutInfo, updateAboutInfo,
     siteNotice, updateSiteNotice,
     analytics,
+    exportData,
     logout 
   } = useData();
   const t = useTranslation();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('projects');
+  const [publishState, setPublishState] = useState('idle');
+  const [publishInfo, setPublishInfo] = useState('');
+  const initialSnapshotRef = useRef(null);
+  const lastPublishedSnapshotRef = useRef(null);
+  const publishTimerRef = useRef(null);
   
   // State for single-post editing view
   const [blogView, setBlogView] = useState('list'); // 'list' or 'edit'
@@ -92,6 +152,78 @@ const Admin = () => {
     setBlogView('edit');
   };
 
+  useEffect(() => {
+    const ownerSaved = (localStorage.getItem('ghOwner') || '').trim();
+    const repoSaved = (localStorage.getItem('ghRepo') || '').trim();
+    if (ownerSaved && repoSaved) return;
+    try {
+      const host = window.location.host;
+      const path = window.location.pathname || '/';
+      if (!host.endsWith('github.io')) return;
+      const owner = host.replace(/\.github\.io$/, '');
+      const repo = path.split('/').filter(Boolean)[0] || '';
+      if (!ownerSaved && owner) localStorage.setItem('ghOwner', owner);
+      if (!repoSaved && repo) localStorage.setItem('ghRepo', repo);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    if (initialSnapshotRef.current) return;
+    try {
+      initialSnapshotRef.current = JSON.stringify({ projects, blogPosts, aboutInfo, siteNotice, language: localStorage.getItem('language') || 'en' });
+    } catch {
+      initialSnapshotRef.current = '';
+    }
+  }, [projects, blogPosts, aboutInfo, siteNotice]);
+
+  useEffect(() => {
+    if (!exportData) return;
+    const token = (sessionStorage.getItem('ghToken') || '').trim();
+    const owner = (localStorage.getItem('ghOwner') || '').trim();
+    const repo = (localStorage.getItem('ghRepo') || '').trim();
+    const branch = (localStorage.getItem('ghBranch') || 'main').trim();
+    const path = (localStorage.getItem('ghPath') || 'src/site-data.json').trim();
+
+    if (!token || !owner || !repo) return;
+
+    let snapshot = '';
+    try {
+      snapshot = JSON.stringify({ projects, blogPosts, aboutInfo, siteNotice, language: localStorage.getItem('language') || 'en' });
+    } catch {
+      snapshot = '';
+    }
+
+    if (initialSnapshotRef.current === snapshot) return;
+    if (lastPublishedSnapshotRef.current === snapshot) return;
+
+    if (publishTimerRef.current) window.clearTimeout(publishTimerRef.current);
+    publishTimerRef.current = window.setTimeout(async () => {
+      setPublishState('publishing');
+      setPublishInfo('');
+      try {
+        const content = exportData();
+        const res = await publishJsonToRepo({ token, owner, repo, branch, path, content });
+        if (!res.ok) {
+          setPublishState('error');
+          setPublishInfo(res.error || 'publish_failed');
+          return;
+        }
+        lastPublishedSnapshotRef.current = snapshot;
+        setPublishState('published');
+        setPublishInfo(res.commitUrl || '');
+      } catch {
+        setPublishState('error');
+        setPublishInfo('publish_failed');
+      }
+    }, 1200);
+
+    return () => {
+      if (publishTimerRef.current) window.clearTimeout(publishTimerRef.current);
+    };
+  }, [projects, blogPosts, aboutInfo, siteNotice, exportData]);
+
   return (
     <div className="max-w-6xl mx-auto px-4 pt-12 pb-24">
       <style>{`
@@ -102,7 +234,16 @@ const Admin = () => {
       {blogView === 'list' ? (
         <>
           <div className="flex items-center justify-between mb-12">
-            <h1 className="text-3xl font-bold text-text-main">{t('admin.dashboard')}</h1>
+            <div className="space-y-1">
+              <h1 className="text-3xl font-bold text-text-main">{t('admin.dashboard')}</h1>
+              {publishState !== 'idle' && (
+                <div className="text-xs text-text-muted font-semibold">
+                  {publishState === 'publishing' && 'Publishing to GitHub...'}
+                  {publishState === 'published' && (publishInfo ? `Published: ${publishInfo}` : 'Published to GitHub')}
+                  {publishState === 'error' && `Publish failed: ${publishInfo || ''}`}
+                </div>
+              )}
+            </div>
             <button 
               onClick={handleLogout}
               className="flex items-center text-text-muted hover:text-red-500 transition-colors font-medium"
@@ -406,13 +547,6 @@ const DataBackup = () => {
     reader.readAsText(file);
   };
 
-  const base64EncodeUtf8 = (str) => {
-    const bytes = new TextEncoder().encode(str);
-    let binary = '';
-    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-    return btoa(binary);
-  };
-
   const publishToGitHub = async () => {
     const token = (ghToken || '').trim();
     const owner = (ghOwner || '').trim();
@@ -435,50 +569,12 @@ const DataBackup = () => {
 
     try {
       const content = exportData();
-      const apiPath = path.split('/').map(encodeURIComponent).join('/');
-      const getUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${apiPath}?ref=${encodeURIComponent(branch)}`;
-
-      let sha;
-      const getRes = await fetch(getUrl, {
-        headers: {
-          Accept: 'application/vnd.github+json',
-          Authorization: `Bearer ${token}`,
-          'X-GitHub-Api-Version': '2022-11-28'
-        }
-      });
-      if (getRes.ok) {
-        const existing = await getRes.json();
-        sha = existing?.sha;
-      }
-
-      const putUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${apiPath}`;
-      const putBody = {
-        message: `Update site data (${new Date().toISOString()})`,
-        content: base64EncodeUtf8(content),
-        branch
-      };
-      if (sha) putBody.sha = sha;
-
-      const putRes = await fetch(putUrl, {
-        method: 'PUT',
-        headers: {
-          Accept: 'application/vnd.github+json',
-          Authorization: `Bearer ${token}`,
-          'X-GitHub-Api-Version': '2022-11-28',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(putBody)
-      });
-
-      if (!putRes.ok) {
-        const text = await putRes.text();
-        setMessage(`Publish failed: ${putRes.status} ${text.slice(0, 200)}`);
+      const res = await publishJsonToRepo({ token, owner, repo, branch, path, content });
+      if (!res.ok) {
+        setMessage(`Publish failed: ${res.error || ''}`.slice(0, 220));
         return;
       }
-
-      const result = await putRes.json();
-      const commitUrl = result?.commit?.html_url;
-      setMessage(commitUrl ? `Published. Commit: ${commitUrl}` : 'Published to GitHub successfully.');
+      setMessage(res.commitUrl ? `Published. Commit: ${res.commitUrl}` : 'Published to GitHub successfully.');
     } catch {
       setMessage('Publish failed due to network or permission error.');
     } finally {
