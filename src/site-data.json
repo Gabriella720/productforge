@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-04-01T12:58:03.859Z",
+  "exportedAt": "2026-04-01T13:31:32.753Z",
   "projects": [
     {
       "id": 1,
@@ -12,7 +12,7 @@
         "Computer Vision",
         "Python"
       ],
-      "image": "/productforge/uploads/ad_analysis_skill.png",
+      "image": "https://cdn.jsdelivr.net/gh/Gabriella720/productforge/public/uploads/ad_analysis_skill.png",
       "codeUrl": "https://github.com/Gabriella720/Ad_Analysis_Skill.git",
       "demoUrl": "https://gabriella720.github.io/Ad_Analysis_Skill/"
     },
@@ -116,7 +116,7 @@
     "name": "SunnyJ",
     "role": "Product Manager, Data Expert,AI Builder.To build an awesome Life",
     "tagline": "Product Manager, Data Expert,AI Builder.",
-    "profileImage": "/productforge/uploads/image.png",
+    "profileImage": "https://cdn.jsdelivr.net/gh/Gabriella720/productforge/public/uploads/image.png",
     "highlights": [
       {
         "id": 1,
