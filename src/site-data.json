@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "exportedAt": "2026-04-01T12:28:32.462Z",
+  "exportedAt": "2026-04-01T12:35:34.185Z",
   "projects": [
     {
       "id": 1,
       "title": "Ad Analysis Skill ",
-      "description": "A deep learning application that applies artistic styles to photographs using convolutional neural networks. Implemented with TensorFlow and optimized for real-time processing.",
+      "description": "Runs parameterized Python analysis for ad KPIs. Invoke when users ask about ad performance, CTR/CVR/ECPM breakdowns, comparisons, or anomaly reasons.",
       "tags": [
         "Deep Learning",
         "TensorFlow",
@@ -13,8 +13,8 @@
         "Python"
       ],
       "image": "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800",
-      "codeUrl": "",
-      "demoUrl": ""
+      "codeUrl": "https://github.com/Gabriella720/Ad_Analysis_Skill.git",
+      "demoUrl": "https://gabriella720.github.io/Ad_Analysis_Skill/"
     },
     {
       "id": 2,
