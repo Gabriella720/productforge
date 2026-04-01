@@ -46,6 +46,18 @@ const initialSiteNotice = siteData?.siteNotice && typeof siteData.siteNotice ===
 };
 
 export const DataProvider = ({ children }) => {
+  const safeParseJson = (raw) => {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  };
+
+  const draftKey = 'adminDraftSiteData';
+  const draftRaw = (localStorage.getItem('isAdmin') === 'true') ? localStorage.getItem(draftKey) : null;
+  const draft = draftRaw ? safeParseJson(draftRaw) : null;
+
   const normalizeBlogPost = (post) => {
     const base = post && typeof post === 'object' ? post : {};
     const i18nRaw = base.i18n && typeof base.i18n === 'object' ? base.i18n : {};
@@ -108,18 +120,23 @@ export const DataProvider = ({ children }) => {
     };
   };
 
-  const [projects, setProjects] = useState(() => initialProjects);
+  const [projects, setProjects] = useState(() => {
+    return Array.isArray(draft?.projects) ? draft.projects : initialProjects;
+  });
 
   const [blogPosts, setBlogPosts] = useState(() => {
-    return initialBlogPosts.map(normalizeBlogPost);
+    const arr = Array.isArray(draft?.blogPosts) ? draft.blogPosts : initialBlogPosts;
+    return Array.isArray(arr) ? arr.map(normalizeBlogPost) : initialBlogPosts.map(normalizeBlogPost);
   });
 
   const [aboutInfo, setAboutInfo] = useState(() => {
-    return normalizeAboutInfo(initialAboutInfo);
+    const base = draft?.aboutInfo && typeof draft.aboutInfo === 'object' ? draft.aboutInfo : initialAboutInfo;
+    return normalizeAboutInfo(base);
   });
 
   const [siteNotice, setSiteNotice] = useState(() => {
-    return normalizeSiteNotice(initialSiteNotice);
+    const base = draft?.siteNotice && typeof draft.siteNotice === 'object' ? draft.siteNotice : initialSiteNotice;
+    return normalizeSiteNotice(base);
   });
 
   const [isAdmin, setIsAdmin] = useState(() => {
@@ -127,7 +144,7 @@ export const DataProvider = ({ children }) => {
   });
 
   const [language, setLanguage] = useState(() => {
-    return localStorage.getItem('language') || siteData?.language || 'en';
+    return localStorage.getItem('language') || draft?.language || siteData?.language || 'en';
   });
 
   const [analytics, setAnalytics] = useState(() => {
@@ -145,6 +162,19 @@ export const DataProvider = ({ children }) => {
 
   useEffect(() => {
     localStorage.setItem('isAdmin', isAdmin);
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const raw = localStorage.getItem(draftKey);
+    if (!raw) return;
+    const parsed = safeParseJson(raw);
+    if (!parsed || typeof parsed !== 'object') return;
+    if (Array.isArray(parsed.projects)) setProjects(parsed.projects);
+    if (Array.isArray(parsed.blogPosts)) setBlogPosts(parsed.blogPosts.map(normalizeBlogPost));
+    if (parsed.aboutInfo && typeof parsed.aboutInfo === 'object') setAboutInfo(normalizeAboutInfo(parsed.aboutInfo));
+    if (parsed.siteNotice && typeof parsed.siteNotice === 'object') setSiteNotice(normalizeSiteNotice(parsed.siteNotice));
+    if (typeof parsed.language === 'string') setLanguage(parsed.language);
   }, [isAdmin]);
   const login = (password) => {
     if (password === 'admin123') {
@@ -168,29 +198,29 @@ export const DataProvider = ({ children }) => {
 
   const addProject = (project) => {
     const newProject = { ...project, id: Date.now() };
-    setProjects([newProject, ...projects]);
+    setProjects(prev => [newProject, ...(Array.isArray(prev) ? prev : [])]);
   };
 
   const updateProject = (updatedProject) => {
-    setProjects(projects.map(p => p.id === updatedProject.id ? updatedProject : p));
+    setProjects(prev => (Array.isArray(prev) ? prev.map(p => p.id === updatedProject.id ? updatedProject : p) : prev));
   };
 
   const deleteProject = (id) => {
-    setProjects(projects.filter(p => p.id !== id));
+    setProjects(prev => (Array.isArray(prev) ? prev.filter(p => p.id !== id) : prev));
   };
 
   const addBlogPost = (post) => {
     const newPost = normalizeBlogPost({ ...post, id: Date.now() });
-    setBlogPosts([newPost, ...blogPosts]);
+    setBlogPosts(prev => [newPost, ...(Array.isArray(prev) ? prev : [])]);
   };
 
   const updateBlogPost = (updatedPost) => {
     const next = normalizeBlogPost(updatedPost);
-    setBlogPosts(blogPosts.map(p => p.id === next.id ? next : p));
+    setBlogPosts(prev => (Array.isArray(prev) ? prev.map(p => p.id === next.id ? next : p) : prev));
   };
 
   const deleteBlogPost = (id) => {
-    setBlogPosts(blogPosts.filter(p => p.id !== id));
+    setBlogPosts(prev => (Array.isArray(prev) ? prev.filter(p => p.id !== id) : prev));
   };
 
   const addComment = (postId, comment) => {
@@ -273,6 +303,24 @@ export const DataProvider = ({ children }) => {
     };
     return JSON.stringify(payload, null, 2);
   };
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    try {
+      const payload = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        projects,
+        blogPosts,
+        aboutInfo,
+        siteNotice,
+        language
+      };
+      localStorage.setItem(draftKey, JSON.stringify(payload, null, 2));
+    } catch {
+      // ignore
+    }
+  }, [isAdmin, projects, blogPosts, aboutInfo, siteNotice, language]);
 
   const importData = (json) => {
     try {

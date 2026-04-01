@@ -186,8 +186,6 @@ const Admin = () => {
     const branch = (localStorage.getItem('ghBranch') || 'main').trim();
     const path = (localStorage.getItem('ghPath') || 'src/site-data.json').trim();
 
-    if (!token || !owner || !repo) return;
-
     let snapshot = '';
     try {
       snapshot = JSON.stringify({ projects, blogPosts, aboutInfo, siteNotice, language: localStorage.getItem('language') || 'en' });
@@ -197,6 +195,12 @@ const Admin = () => {
 
     if (initialSnapshotRef.current === snapshot) return;
     if (lastPublishedSnapshotRef.current === snapshot) return;
+
+    if (!token || !owner || !repo) {
+      setPublishState('error');
+      setPublishInfo('Missing GitHub token or repo info. Set it in Data Backup.');
+      return;
+    }
 
     if (publishTimerRef.current) window.clearTimeout(publishTimerRef.current);
     publishTimerRef.current = window.setTimeout(async () => {
