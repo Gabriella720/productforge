@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-04-01T12:49:22.143Z",
+  "exportedAt": "2026-04-01T12:56:19.645Z",
   "projects": [
     {
       "id": 1,
@@ -116,32 +116,32 @@
     "name": "SunnyJ",
     "role": "Product Manager, Data Expert,AI Builder.To build an awesome Life",
     "tagline": "Product Manager, Data Expert,AI Builder.",
-    "profileImage": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=300",
+    "profileImage": "/productforge/uploads/image.png",
     "highlights": [
       {
         "id": 1,
-        "value": "80+",
-        "label": "Products Served",
+        "value": "4+",
+        "label": "Data System Build",
         "valueFontSize": 40,
         "labelFontSize": 14
       },
       {
         "id": 2,
-        "value": "3 Years",
-        "label": "Practical Experience",
+        "value": "10 Years",
+        "label": "Data Experince ",
         "valueFontSize": 40,
         "labelFontSize": 14
       },
       {
         "id": 3,
-        "value": "Significant",
-        "label": "Business Growth Results",
-        "valueFontSize": 36,
+        "value": "2 Roles",
+        "label": "Product Manager, Engineer",
+        "valueFontSize": 4040,
         "labelFontSize": 14
       }
     ],
     "socials": {
-      "github": "#",
+      "github": "https://github.com/Gabriella720",
       "wechat": "",
       "email": "mailto:hello@example.com"
     }
