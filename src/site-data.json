@@ -1,7 +1,18 @@
 {
   "version": 1,
-  "exportedAt": "2026-04-01T13:50:46.927Z",
+  "exportedAt": "2026-04-02T06:41:51.745Z",
   "projects": [
+    {
+      "title": "SmartFlow",
+      "description": "Intelligently create daily schedules based on your actual work and life rhythms, adjust them in real time, and achieve a balance between work, life and health.",
+      "tags": [
+        "AI Agent"
+      ],
+      "image": "/productforge/uploads/smartflow_logo.png",
+      "codeUrl": "https://github.com/Gabriella720/smartflow.git",
+      "demoUrl": "https://gabriella720.github.io/smartflow/",
+      "id": 1775111441396
+    },
     {
       "id": 1,
       "title": "Ad Analysis Skill ",
