@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-04-02T06:41:51.745Z",
+  "exportedAt": "2026-04-07T12:55:14.052Z",
   "projects": [
     {
       "title": "SmartFlow",
@@ -139,14 +139,14 @@
       {
         "id": 2,
         "value": "10 Years",
-        "label": "Data Experince ",
+        "label": "Data Experince, Product + Engineer",
         "valueFontSize": 30,
         "labelFontSize": 14
       },
       {
         "id": 3,
-        "value": "2 Roles",
-        "label": "Product Manager, Engineer",
+        "value": "2",
+        "label": "AI Build Projects",
         "valueFontSize": 30,
         "labelFontSize": 14
       }
