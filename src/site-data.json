@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "exportedAt": "2026-04-07T12:55:14.052Z",
+  "exportedAt": "2026-04-09T09:56:05.643Z",
   "projects": [
     {
-      "title": "SmartFlow",
-      "description": "Intelligently create daily schedules based on your actual work and life rhythms, adjust them in real time, and achieve a balance between work, life and health.",
+      "title": "Smart Schedule Assistant",
+      "description": "An AI-powered scheduling assistant with the goal of helping users manage work, life, and health more efficiently.",
       "tags": [
-        "AI Agent"
+        "AI Agent Product"
       ],
       "image": "/productforge/uploads/smartflow_logo.png",
       "codeUrl": "https://github.com/Gabriella720/smartflow.git",
