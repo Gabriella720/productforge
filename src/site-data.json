@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-04-09T09:56:05.643Z",
+  "exportedAt": "2026-04-09T09:57:53.408Z",
   "projects": [
     {
       "title": "Smart Schedule Assistant",
@@ -8,7 +8,7 @@
       "tags": [
         "AI Agent Product"
       ],
-      "image": "/productforge/uploads/smartflow_logo.png",
+      "image": "https://cdn.jsdelivr.net/gh/Gabriella720/productforge/public/uploads/project_travelplan.png",
       "codeUrl": "https://github.com/Gabriella720/smartflow.git",
       "demoUrl": "https://gabriella720.github.io/smartflow/",
       "id": 1775111441396
