@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-04-23T11:11:08.746Z",
+  "exportedAt": "2026-04-23T12:42:54.370Z",
   "projects": [
     {
       "title": "Agent Evaluation Studio",
@@ -10,7 +10,7 @@
         "Outcome Driven",
         "Agent Optimization"
       ],
-      "image": "https://cdn.jsdelivr.net/gh/Gabriella720/productforge/public/uploads/agenteval.png",
+      "image": "https://cdn.jsdelivr.net/gh/Gabriella720/productforge/public/uploads/AgentEvals.jpeg",
       "codeUrl": "https://github.com/Gabriella720/Agent_Evaluation_Studio.git",
       "demoUrl": "https://gabriella720.github.io/Agent_Evaluation_Studio/",
       "id": 1776941958974
