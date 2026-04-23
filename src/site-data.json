@@ -1,7 +1,20 @@
 {
   "version": 1,
-  "exportedAt": "2026-04-13T13:11:33.406Z",
+  "exportedAt": "2026-04-23T10:59:20.186Z",
   "projects": [
+    {
+      "title": "Agent Evaluation Studio",
+      "description": "",
+      "tags": [
+        "Agent Analysis",
+        "Outcome Driven",
+        "Agent Optimization"
+      ],
+      "image": "",
+      "codeUrl": "https://github.com/Gabriella720/Agent_Evaluation_Studio.git",
+      "demoUrl": "https://gabriella720.github.io/Agent_Evaluation_Studio/",
+      "id": 1776941958974
+    },
     {
       "title": "Smart Schedule Assistant",
       "description": "An AI-powered scheduling assistant with the goal of helping users manage work, life, and health more efficiently.",
