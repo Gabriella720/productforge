@@ -15,7 +15,6 @@ const AnalyticsTracker = () => {
   const { recordVisit } = useData();
 
   useEffect(() => {
-    // Record visit on route change
     recordVisit(location.pathname);
   }, [location.pathname, recordVisit]);
 

@@ -1,6 +1,19 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { translations } from '../translations';
 import siteData from '../site-data.json';
+import {
+  loadAllAnalytics,
+  refreshAnalyticsFromGitHub,
+  queueVisitForSync,
+  scheduleAnalyticsSync,
+  createVisitRecord,
+  shouldTrackPath,
+  syncPendingVisits,
+  mergeVisits,
+  getCachedVisits,
+  getPendingVisits,
+  setPendingVisits,
+} from '../utils/analyticsApi';
 
 const DataContext = createContext();
 
@@ -147,14 +160,48 @@ export const DataProvider = ({ children }) => {
     return localStorage.getItem('language') || draft?.language || siteData?.language || 'en';
   });
 
-  const [analytics, setAnalytics] = useState(() => {
-    const saved = localStorage.getItem('analytics');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [analytics, setAnalytics] = useState(() => getCachedVisits());
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
+  const analyticsLoadedRef = useRef(false);
+
+  const reloadAnalytics = useCallback(async () => {
+    setAnalyticsLoading(true);
+    try {
+      const data = await refreshAnalyticsFromGitHub();
+      setAnalytics(data);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    localStorage.setItem('analytics', JSON.stringify(analytics));
-  }, [analytics]);
+    if (analyticsLoadedRef.current) return;
+    analyticsLoadedRef.current = true;
+    const legacy = localStorage.getItem('analytics');
+    if (legacy) {
+      try {
+        const parsed = JSON.parse(legacy);
+        if (Array.isArray(parsed) && parsed.length) {
+          setPendingVisits(mergeVisits(getPendingVisits(), parsed));
+        }
+      } catch {
+        // ignore
+      }
+      localStorage.removeItem('analytics');
+    }
+    (async () => {
+      setAnalyticsLoading(true);
+      try {
+        const data = await loadAllAnalytics();
+        setAnalytics(data);
+        await syncPendingVisits();
+        const refreshed = await loadAllAnalytics();
+        setAnalytics(refreshed);
+      } finally {
+        setAnalyticsLoading(false);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('language', language);
@@ -262,34 +309,24 @@ export const DataProvider = ({ children }) => {
     }));
   };
 
-  const recordVisit = (page) => {
-    // Basic rate limiting to prevent double recording in StrictMode or rapid navigation
+  const recordVisit = useCallback((page) => {
+    if (!shouldTrackPath(page)) return;
+
     const now = Date.now();
     const lastVisit = sessionStorage.getItem('lastVisit');
     const lastPage = sessionStorage.getItem('lastPage');
-    
-    if (lastVisit && (now - parseInt(lastVisit) < 1000) && lastPage === page) return;
-    
+    if (lastVisit && now - parseInt(lastVisit, 10) < 1000 && lastPage === page) return;
+
     sessionStorage.setItem('lastVisit', now.toString());
     sessionStorage.setItem('lastPage', page);
 
-    const visitData = {
-      id: now,
-      timestamp: now,
-      page: page,
-      userAgent: navigator.userAgent,
-      language: navigator.language,
-      platform: navigator.platform,
-      screenSize: `${window.innerWidth}x${window.innerHeight}`,
-      referrer: document.referrer || 'Direct'
-    };
-
-    setAnalytics(prev => {
-      const updated = [visitData, ...prev];
-      // Keep only last 10000 records to prevent localStorage overflow
-      return updated.slice(0, 10000);
-    });
-  };
+    void (async () => {
+      const visitData = await createVisitRecord(page);
+      queueVisitForSync(visitData);
+      setAnalytics((prev) => mergeVisits([visitData, ...prev]).slice(0, 10000));
+      scheduleAnalyticsSync();
+    })();
+  }, []);
 
   const exportData = () => {
     const payload = {
@@ -348,7 +385,7 @@ export const DataProvider = ({ children }) => {
       siteNotice, updateSiteNotice,
       isAdmin, login, logout,
       language, setLanguage,
-      analytics, recordVisit,
+      analytics, analyticsLoading, recordVisit, reloadAnalytics,
       exportData, importData
     }}>
       {children}

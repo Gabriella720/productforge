@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Editor } from '@tinymce/tinymce-react';
+import { isAnalyticsSyncConfigured, syncPendingVisits, getRecordVisitorLabel } from '../utils/analyticsApi';
 
 // TinyMCE self-hosted configuration
 import 'tinymce/tinymce';
@@ -99,6 +100,8 @@ const Admin = () => {
     aboutInfo, updateAboutInfo,
     siteNotice, updateSiteNotice,
     analytics,
+    analyticsLoading,
+    reloadAnalytics,
     exportData,
     logout 
   } = useData();
@@ -301,7 +304,11 @@ const Admin = () => {
               <NoticeManager notice={siteNotice} onUpdate={updateSiteNotice} />
             )}
             {activeTab === 'analytics' && (
-              <AnalyticsDashboard analytics={analytics} />
+              <AnalyticsDashboard
+                analytics={analytics}
+                loading={analyticsLoading}
+                onRefresh={reloadAnalytics}
+              />
             )}
             {activeTab === 'backup' && (
               <DataBackup />
@@ -326,59 +333,125 @@ const Admin = () => {
   );
 };
 
-const AnalyticsDashboard = ({ analytics }) => {
-  const [range, setRange] = useState('7d'); // '7d', '50d', '90d'
-  const [now, setNow] = useState(0);
+const RANGE_OPTIONS = [
+  { id: '1d', labelKey: 'range1d', ms: 24 * 60 * 60 * 1000, bucket: 'hour' },
+  { id: '7d', labelKey: 'range7d', ms: 7 * 24 * 60 * 60 * 1000, bucket: 'day' },
+  { id: '30d', labelKey: 'range30d', ms: 30 * 24 * 60 * 60 * 1000, bucket: 'day' },
+  { id: '90d', labelKey: 'range90d', ms: 90 * 24 * 60 * 60 * 1000, bucket: 'day' },
+];
+
+const buildTrendBuckets = (rangeId, now, records) => {
+  const config = RANGE_OPTIONS.find((r) => r.id === rangeId) || RANGE_OPTIONS[1];
+  const cutoff = now - config.ms;
+  const filtered = records.filter((r) => r.timestamp > cutoff);
+
+  if (config.bucket === 'hour') {
+    const buckets = {};
+    for (let i = 23; i >= 0; i--) {
+      const t = new Date(now - i * 60 * 60 * 1000);
+      const key = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')} ${String(t.getHours()).padStart(2, '0')}:00`;
+      buckets[key] = 0;
+    }
+    filtered.forEach((record) => {
+      const t = new Date(record.timestamp);
+      const key = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')} ${String(t.getHours()).padStart(2, '0')}:00`;
+      if (buckets[key] !== undefined) buckets[key]++;
+    });
+    return { data: Object.entries(buckets).map(([date, count]) => ({ date, count })), subtitle: 'last24h' };
+  }
+
+  const dayMs = 24 * 60 * 60 * 1000;
+  const days = Math.round(config.ms / dayMs);
+  const buckets = {};
+  for (let i = days - 1; i >= 0; i--) {
+    const date = new Date(now - i * dayMs);
+    buckets[date.toISOString().split('T')[0]] = 0;
+  }
+  filtered.forEach((record) => {
+    const key = new Date(record.timestamp).toISOString().split('T')[0];
+    if (buckets[key] !== undefined) buckets[key]++;
+  });
+  return {
+    data: Object.entries(buckets).map(([date, count]) => ({ date, count })),
+    subtitle: `last${days}d`,
+  };
+};
+
+const AnalyticsDashboard = ({ analytics, loading, onRefresh }) => {
+  const t = useTranslation();
+  const [range, setRange] = useState('7d');
+  const [now, setNow] = useState(() => Date.now());
+  const [syncState, setSyncState] = useState('idle');
+  const [syncMessage, setSyncMessage] = useState('');
+
+  const rangeConfig = RANGE_OPTIONS.find((r) => r.id === range) || RANGE_OPTIONS[1];
+  const syncConfigured = isAnalyticsSyncConfigured();
+
+  useEffect(() => {
+    setNow(Date.now());
+    onRefresh?.();
+  }, []);
 
   useEffect(() => {
     setNow(Date.now());
   }, [range, analytics.length]);
 
-  const { data, days } = useMemo(() => {
-    const dayMs = 24 * 60 * 60 * 1000;
-    let d = 7;
-    if (range === '50d') d = 50;
-    if (range === '90d') d = 90;
+  const filteredRecords = useMemo(() => {
+    const cutoff = now - rangeConfig.ms;
+    return analytics
+      .filter((r) => r.timestamp > cutoff)
+      .sort((a, b) => b.timestamp - a.timestamp);
+  }, [analytics, now, rangeConfig.ms]);
 
-    if (!now) return { data: [], days: d };
+  const { data: trendData, subtitle: trendSubtitle } = useMemo(
+    () => buildTrendBuckets(range, now, analytics),
+    [range, now, analytics]
+  );
 
-    const cutoff = now - (d * dayMs);
-    const filtered = analytics.filter(record => record.timestamp > cutoff);
+  const totalViews = filteredRecords.length;
+  const newViews = useMemo(
+    () => analytics.filter((r) => r.timestamp > now - 24 * 60 * 60 * 1000).length,
+    [analytics, now]
+  );
+  const uniqueUsers = useMemo(
+    () => new Set(filteredRecords.map((r) => r.visitorId || r.ip || `${r.userAgent}|${r.screenSize}`)).size,
+    [filteredRecords]
+  );
 
-    const grouped = {};
-    for (let i = 0; i < d; i++) {
-      const date = new Date(now - i * dayMs);
-      const key = date.toISOString().split('T')[0];
-      grouped[key] = 0;
+  const maxCount = Math.max(...trendData.map((d) => d.count), 1);
+
+  const handleSync = async () => {
+    setSyncState('syncing');
+    setSyncMessage('');
+    const result = await syncPendingVisits();
+    await onRefresh?.();
+    if (result.ok) {
+      setSyncState('done');
+      setSyncMessage(t('admin.analyticsSyncOk'));
+    } else {
+      setSyncState('error');
+      setSyncMessage(
+        result.reason === 'no_token'
+          ? t('admin.analyticsSyncNoToken')
+          : t('admin.analyticsSyncFail')
+      );
     }
+  };
 
-    filtered.forEach(record => {
-      const key = new Date(record.timestamp).toISOString().split('T')[0];
-      if (grouped[key] !== undefined) grouped[key]++;
-    });
+  const formatTrendLabel = (label) => {
+    if (range === '1d' && label.includes(' ')) return label.split(' ')[1] || label;
+    return label.slice(5);
+  };
 
-    return { data: Object.entries(grouped).sort().map(([date, count]) => ({ date, count })), days: d };
-  }, [analytics, now, range]);
-
-  const totalViews = analytics.length;
-  const newViews = useMemo(() => {
-    if (!now) return 0;
-    return analytics.filter(r => r.timestamp > now - 24 * 60 * 60 * 1000).length;
-  }, [analytics, now]);
-  const uniqueUsers = new Set(analytics.map(r => r.userAgent + r.screenSize)).size;
-
-  const maxCount = Math.max(...data.map(d => d.count), 1);
+  const trendSubtitleText =
+    trendSubtitle === 'last24h' ? t('admin.analyticsLast24h') : t(`admin.analytics${trendSubtitle}`);
 
   return (
     <div className="space-y-10">
-      <div className="flex justify-between items-center px-2">
-        <h2 className="text-xl font-bold text-text-main">Website Analytics</h2>
+      <div className="flex flex-col gap-4 lg:flex-row lg:justify-between lg:items-center px-2 flex-wrap">
+        <h2 className="text-xl font-bold text-text-main">{t('admin.analyticsTitle')}</h2>
         <div className="flex bg-bg-main p-1 rounded-xl border border-border-soft">
-          {[
-            { id: '7d', label: '1 Week' },
-            { id: '50d', label: '50 Days' },
-            { id: '90d', label: '3 Months' }
-          ].map(r => (
+          {RANGE_OPTIONS.map((r) => (
             <button
               key={r.id}
               onClick={() => setRange(r.id)}
@@ -386,18 +459,45 @@ const AnalyticsDashboard = ({ analytics }) => {
                 range === r.id ? 'bg-white text-brand shadow-sm' : 'text-text-muted hover:text-brand'
               }`}
             >
-              {r.label}
+              {t(`admin.${r.labelKey}`)}
             </button>
           ))}
         </div>
+        <button
+          type="button"
+          onClick={() => onRefresh?.()}
+          disabled={loading}
+          className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border-soft text-text-muted hover:text-brand disabled:opacity-50"
+        >
+          {loading ? t('admin.analyticsRefreshing') : t('admin.analyticsRefresh')}
+        </button>
+        <button
+          type="button"
+          onClick={handleSync}
+          disabled={syncState === 'syncing'}
+          className="px-3 py-1.5 rounded-lg text-xs font-bold bg-brand text-white hover:opacity-90 disabled:opacity-50"
+        >
+          {syncState === 'syncing' ? t('admin.analyticsSyncing') : t('admin.analyticsSync')}
+        </button>
       </div>
+
+      {!syncConfigured && (
+        <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 mx-2">
+          {t('admin.analyticsSyncHint')}
+        </p>
+      )}
+      {syncMessage && (
+        <p className={`text-sm px-4 py-2 mx-2 rounded-xl ${syncState === 'error' ? 'text-red-700 bg-red-50' : 'text-green-700 bg-green-50'}`}>
+          {syncMessage}
+        </p>
+      )}
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <StatCard icon={<Eye className="w-5 h-5" />} label="Total Views" value={totalViews} color="blue" />
-        <StatCard icon={<TrendingUp className="w-5 h-5" />} label="New Views (24h)" value={newViews} color="green" />
-        <StatCard icon={<Users className="w-5 h-5" />} label="Unique Users" value={uniqueUsers} color="purple" />
-        <StatCard icon={<MousePointer2 className="w-5 h-5" />} label="Avg. Interactivity" value="High" color="orange" />
+        <StatCard icon={<Eye className="w-5 h-5" />} label={t('admin.analyticsTotalViews')} value={loading ? '…' : totalViews} color="blue" />
+        <StatCard icon={<TrendingUp className="w-5 h-5" />} label={t('admin.analyticsNew24h')} value={loading ? '…' : newViews} color="green" />
+        <StatCard icon={<Users className="w-5 h-5" />} label={t('admin.analyticsUnique')} value={loading ? '…' : uniqueUsers} color="purple" />
+        <StatCard icon={<MousePointer2 className="w-5 h-5" />} label={t('admin.analyticsInRange')} value={loading ? '…' : filteredRecords.length} color="orange" />
       </div>
 
       {/* Simple Trend Chart */}
@@ -405,28 +505,30 @@ const AnalyticsDashboard = ({ analytics }) => {
         <div className="flex items-center justify-between mb-8">
           <h3 className="font-bold text-text-main flex items-center">
             <TrendingUp className="w-5 h-5 mr-2 text-brand" />
-            Visitor Trend
+            {t('admin.analyticsTrend')}
           </h3>
-          <span className="text-xs text-text-muted font-medium">Last {days} days</span>
+          <span className="text-xs text-text-muted font-medium">{trendSubtitleText}</span>
         </div>
         
         <div className="h-64 flex items-end justify-between space-x-1">
-          {data.map((d, i) => (
+          {trendData.map((d, i) => (
             <div key={i} className="flex-grow flex flex-col items-center group relative">
               <div 
                 className="w-full bg-brand/20 group-hover:bg-brand/40 transition-all rounded-t-md cursor-pointer"
-                style={{ height: `${(d.count / maxCount) * 100}%`, minHeight: '4px' }}
+                style={{
+                  height: d.count > 0 ? `${Math.max((d.count / maxCount) * 100, 8)}%` : '2px',
+                }}
               >
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-text-main text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-xl">
-                  {d.count} views ({d.date})
+                  {d.count} {t('admin.analyticsViews')} ({d.date})
                 </div>
               </div>
             </div>
           ))}
         </div>
         <div className="flex justify-between mt-4 px-1">
-          <span className="text-[10px] text-text-muted font-bold">{data[0]?.date}</span>
-          <span className="text-[10px] text-text-muted font-bold">{data[data.length-1]?.date}</span>
+          <span className="text-[10px] text-text-muted font-bold">{formatTrendLabel(trendData[0]?.date || '')}</span>
+          <span className="text-[10px] text-text-muted font-bold">{formatTrendLabel(trendData[trendData.length - 1]?.date || '')}</span>
         </div>
       </div>
 
@@ -435,28 +537,51 @@ const AnalyticsDashboard = ({ analytics }) => {
         <div className="p-6 border-b border-border-soft flex items-center justify-between">
           <h3 className="font-bold text-text-main flex items-center">
             <Clock className="w-5 h-5 mr-2 text-brand" />
-            Recent Access Logs
+            {t('admin.analyticsLogs')} ({filteredRecords.length})
           </h3>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto max-h-[480px] overflow-y-auto">
           <table className="w-full text-left">
-            <thead className="bg-bg-main/50 text-[10px] uppercase tracking-widest text-text-muted font-bold">
+            <thead className="bg-bg-main/50 text-[10px] uppercase tracking-widest text-text-muted font-bold sticky top-0">
               <tr>
-                <th className="px-6 py-4">Time</th>
-                <th className="px-6 py-4">Page</th>
-                <th className="px-6 py-4">Platform</th>
-                <th className="px-6 py-4">Referrer</th>
+                <th className="px-6 py-4">{t('admin.analyticsColTime')}</th>
+                <th className="px-6 py-4">{t('admin.analyticsColVisitor')}</th>
+                <th className="px-6 py-4">{t('admin.analyticsColIp')}</th>
+                <th className="px-6 py-4">{t('admin.analyticsColLocation')}</th>
+                <th className="px-6 py-4">{t('admin.analyticsColDevice')}</th>
+                <th className="px-6 py-4">{t('admin.analyticsColPage')}</th>
+                <th className="px-6 py-4">{t('admin.analyticsColReferrer')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border-soft text-sm">
-              {analytics.slice(0, 10).map((record, i) => (
-                <tr key={i} className="hover:bg-bg-main/30 transition-colors">
-                  <td className="px-6 py-4 text-text-muted whitespace-nowrap">{new Date(record.timestamp).toLocaleString()}</td>
-                  <td className="px-6 py-4 font-bold text-brand">{record.page}</td>
-                  <td className="px-6 py-4 text-text-main truncate max-w-[150px]">{record.platform || 'Unknown'}</td>
-                  <td className="px-6 py-4 text-text-muted italic">{record.referrer}</td>
+              {filteredRecords.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-6 py-12 text-center text-text-muted">
+                    {t('admin.analyticsNoData')}
+                  </td>
                 </tr>
-              ))}
+              ) : (
+                filteredRecords.map((record) => (
+                <tr key={record.id} className="hover:bg-bg-main/30 transition-colors">
+                  <td className="px-6 py-4 text-text-muted whitespace-nowrap">{new Date(record.timestamp).toLocaleString()}</td>
+                  <td className="px-6 py-4 text-text-main font-medium whitespace-nowrap">
+                    {getRecordVisitorLabel(record)}
+                    {record.visitorId && (
+                      <span className="block text-[10px] text-text-muted font-normal mt-0.5">{record.visitorId}</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-text-main whitespace-nowrap">{record.ip || '—'}</td>
+                  <td className="px-6 py-4 text-text-muted max-w-[140px] truncate" title={record.location || record.country || ''}>
+                    {record.location || record.country || '—'}
+                  </td>
+                  <td className="px-6 py-4 text-text-main text-xs whitespace-nowrap">
+                    {[record.browser, record.os, record.device].filter(Boolean).join(' · ') || record.platform || '—'}
+                  </td>
+                  <td className="px-6 py-4 font-bold text-brand">{record.page}</td>
+                  <td className="px-6 py-4 text-text-muted italic max-w-[120px] truncate">{record.referrer}</td>
+                </tr>
+              ))
+              )}
             </tbody>
           </table>
         </div>
