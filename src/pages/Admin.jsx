@@ -340,21 +340,31 @@ const RANGE_OPTIONS = [
   { id: '90d', labelKey: 'range90d', ms: 90 * 24 * 60 * 60 * 1000, bucket: 'day' },
 ];
 
+const pad2 = (n) => String(n).padStart(2, '0');
+
+const toLocalDateKey = (ts) => {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+};
+
+const toLocalHourKey = (ts) => {
+  const d = new Date(ts);
+  return `${toLocalDateKey(ts)} ${pad2(d.getHours())}:00`;
+};
+
 const buildTrendBuckets = (rangeId, now, records) => {
   const config = RANGE_OPTIONS.find((r) => r.id === rangeId) || RANGE_OPTIONS[1];
   const cutoff = now - config.ms;
-  const filtered = records.filter((r) => r.timestamp > cutoff);
+  const filtered = records.filter((r) => Number(r.timestamp) > cutoff);
 
   if (config.bucket === 'hour') {
     const buckets = {};
     for (let i = 23; i >= 0; i--) {
-      const t = new Date(now - i * 60 * 60 * 1000);
-      const key = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')} ${String(t.getHours()).padStart(2, '0')}:00`;
+      const key = toLocalHourKey(now - i * 60 * 60 * 1000);
       buckets[key] = 0;
     }
     filtered.forEach((record) => {
-      const t = new Date(record.timestamp);
-      const key = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')} ${String(t.getHours()).padStart(2, '0')}:00`;
+      const key = toLocalHourKey(record.timestamp);
       if (buckets[key] !== undefined) buckets[key]++;
     });
     return { data: Object.entries(buckets).map(([date, count]) => ({ date, count })), subtitle: 'last24h' };
@@ -364,17 +374,111 @@ const buildTrendBuckets = (rangeId, now, records) => {
   const days = Math.round(config.ms / dayMs);
   const buckets = {};
   for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(now - i * dayMs);
-    buckets[date.toISOString().split('T')[0]] = 0;
+    buckets[toLocalDateKey(now - i * dayMs)] = 0;
   }
   filtered.forEach((record) => {
-    const key = new Date(record.timestamp).toISOString().split('T')[0];
+    const key = toLocalDateKey(record.timestamp);
     if (buckets[key] !== undefined) buckets[key]++;
   });
   return {
     data: Object.entries(buckets).map(([date, count]) => ({ date, count })),
     subtitle: `last${days}d`,
   };
+};
+
+const CHART_HEIGHT = 256;
+
+const VisitorTrendChart = ({ data, maxCount, formatLabel, viewsLabel }) => {
+  const [hoverIndex, setHoverIndex] = useState(null);
+  const width = 1000;
+  const height = 280;
+  const padX = 24;
+  const padY = 24;
+  const innerW = width - padX * 2;
+  const innerH = height - padY * 2;
+  const n = data.length;
+
+  if (!n) {
+    return <p className="text-sm text-text-muted text-center py-16">—</p>;
+  }
+
+  const points = data.map((d, i) => {
+    const x = padX + (n === 1 ? innerW / 2 : (i / (n - 1)) * innerW);
+    const ratio = maxCount > 0 ? d.count / maxCount : 0;
+    const y = padY + innerH - ratio * innerH;
+    return { x, y, ...d };
+  });
+
+  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+  const areaPath = `${linePath} L ${points[n - 1].x} ${padY + innerH} L ${points[0].x} ${padY + innerH} Z`;
+
+  return (
+    <div className="relative" style={{ height: CHART_HEIGHT }}>
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="w-full h-full"
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label="Visitor trend chart"
+      >
+        {[0, 0.25, 0.5, 0.75, 1].map((tick) => {
+          const y = padY + innerH * (1 - tick);
+          return (
+            <line
+              key={tick}
+              x1={padX}
+              y1={y}
+              x2={width - padX}
+              y2={y}
+              stroke="currentColor"
+              className="text-border-soft"
+              strokeWidth="1"
+              strokeDasharray="4 6"
+              opacity="0.35"
+            />
+          );
+        })}
+        <path d={areaPath} className="fill-brand/15" />
+        <path
+          d={linePath}
+          fill="none"
+          className="stroke-brand"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+        {points.map((p, i) => (
+          <g key={i}>
+            <circle
+              cx={p.x}
+              cy={p.y}
+              r={hoverIndex === i ? 7 : 4}
+              className="fill-brand stroke-white stroke-[2px] cursor-pointer"
+              onMouseEnter={() => setHoverIndex(i)}
+              onMouseLeave={() => setHoverIndex(null)}
+            />
+          </g>
+        ))}
+      </svg>
+      {hoverIndex != null && points[hoverIndex] && (
+        <div
+          className="absolute pointer-events-none bg-text-main text-white text-[10px] px-2 py-1 rounded shadow-xl whitespace-nowrap z-10"
+          style={{
+            left: `${(points[hoverIndex].x / width) * 100}%`,
+            top: `${(points[hoverIndex].y / height) * 100}%`,
+            transform: 'translate(-50%, -120%)',
+          }}
+        >
+          {points[hoverIndex].count} {viewsLabel} ({points[hoverIndex].date})
+        </div>
+      )}
+      <div className="flex justify-between mt-2 px-1">
+        <span className="text-[10px] text-text-muted font-bold">{formatLabel(data[0]?.date || '')}</span>
+        <span className="text-[10px] text-text-muted font-bold">{formatLabel(data[data.length - 1]?.date || '')}</span>
+      </div>
+    </div>
+  );
 };
 
 const AnalyticsDashboard = ({ analytics, loading, onRefresh }) => {
@@ -510,27 +614,16 @@ const AnalyticsDashboard = ({ analytics, loading, onRefresh }) => {
           <span className="text-xs text-text-muted font-medium">{trendSubtitleText}</span>
         </div>
         
-        <div className="h-64 flex items-end justify-between space-x-1">
-          {trendData.map((d, i) => (
-            <div key={i} className="flex-grow flex flex-col items-center group relative">
-              <div 
-                className="w-full bg-brand/20 group-hover:bg-brand/40 transition-all rounded-t-md cursor-pointer"
-                style={{
-                  height: d.count > 0 ? `${Math.max((d.count / maxCount) * 100, 8)}%` : '2px',
-                }}
-              >
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-text-main text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-xl">
-                  {d.count} {t('admin.analyticsViews')} ({d.date})
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="flex justify-between mt-4 px-1">
-          <span className="text-[10px] text-text-muted font-bold">{formatTrendLabel(trendData[0]?.date || '')}</span>
-          <span className="text-[10px] text-text-muted font-bold">{formatTrendLabel(trendData[trendData.length - 1]?.date || '')}</span>
-        </div>
-      </div>
+        {trendData.length === 0 ? (
+          <p className="text-sm text-text-muted text-center py-16">{t('admin.analyticsNoData')}</p>
+        ) : (
+          <VisitorTrendChart
+            data={trendData}
+            maxCount={maxCount}
+            formatLabel={formatTrendLabel}
+            viewsLabel={t('admin.analyticsViews')}
+          />
+        )}      </div>
 
       {/* Recent Activity Table */}
       <div className="bg-white border border-border-soft rounded-3xl overflow-hidden shadow-sm">
@@ -577,7 +670,17 @@ const AnalyticsDashboard = ({ analytics, loading, onRefresh }) => {
                   <td className="px-6 py-4 text-text-main text-xs whitespace-nowrap">
                     {[record.browser, record.os, record.device].filter(Boolean).join(' · ') || record.platform || '—'}
                   </td>
-                  <td className="px-6 py-4 font-bold text-brand">{record.page}</td>
+                  <td className="px-6 py-4">
+                    <div className="font-bold text-brand break-all">{record.page}</div>
+                    {record.entityName && (
+                      <div className="text-xs text-text-muted mt-0.5 max-w-[200px] truncate">{record.entityName}</div>
+                    )}
+                    {record.eventType === 'click' && record.action && (
+                      <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-brand/10 text-brand text-[10px] font-bold uppercase">
+                        {t(`admin.analyticsAction_${record.action}`) || record.action}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-6 py-4 text-text-muted italic max-w-[120px] truncate">{record.referrer}</td>
                 </tr>
               ))

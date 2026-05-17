@@ -1,9 +1,10 @@
 import React from 'react';
 import { Github, ExternalLink, Code as CodeIcon, Layers } from 'lucide-react';
 import { useData, useTranslation } from '../context/DataContext';
+import { buildProjectPath } from '../utils/analyticsPaths';
 
 const Projects = () => {
-  const { projects } = useData();
+  const { projects, trackEvent } = useData();
   const t = useTranslation();
 
   const normalizeExternalUrl = (raw) => {
@@ -37,7 +38,19 @@ const Projects = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-400">
-        {projects.map((project) => (
+        {projects.map((project) => {
+          const trackProject = (action) => {
+            trackEvent({
+              page: buildProjectPath(project, action),
+              eventType: action ? 'click' : 'pageview',
+              action: action || 'view',
+              entityType: 'project',
+              entityId: project.id,
+              entityName: project.title,
+            });
+          };
+
+          return (
           <div 
             key={project.id} 
             className="group border border-border-soft rounded-[2.5rem] overflow-hidden bg-white hover:shadow-[0_30px_60px_rgba(59,130,246,0.1)] transition-all duration-500 hover:-translate-y-2"
@@ -63,7 +76,10 @@ const Projects = () => {
                 ))}
               </div>
 
-              <h2 className="text-3xl font-black text-text-main mb-4 group-hover:text-brand transition-colors duration-300 tracking-tight">
+              <h2
+                className="text-3xl font-black text-text-main mb-4 group-hover:text-brand transition-colors duration-300 tracking-tight cursor-pointer"
+                onClick={() => trackProject()}
+              >
                 {project.title}
               </h2>
               
@@ -77,6 +93,7 @@ const Projects = () => {
                     href={normalizeExternalUrl(project.codeUrl)}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => trackProject('github')}
                     className="inline-flex items-center text-sm font-bold text-text-main hover:text-brand transition-colors duration-300"
                   >
                     <Github className="mr-2 w-5 h-5" />
@@ -88,6 +105,7 @@ const Projects = () => {
                     href={normalizeExternalUrl(project.demoUrl)}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => trackProject('demo')}
                     className="inline-flex items-center text-sm font-bold text-text-main hover:text-brand transition-colors duration-300"
                   >
                     <ExternalLink className="mr-2 w-5 h-5" />
@@ -97,7 +115,8 @@ const Projects = () => {
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

@@ -53,13 +53,29 @@ const normalizeVisits = (data) => {
   return [];
 };
 
+/** Unique key per visit — never collapse different pages/actions that share a timestamp. */
+export const getVisitDedupeKey = (visit) => {
+  if (!visit || typeof visit !== 'object') return '';
+  const id = visit.id;
+  if (id != null && String(id).includes('-')) return String(id);
+  return [
+    visit.timestamp ?? '',
+    visit.page ?? '',
+    visit.eventType || 'pageview',
+    visit.action || '',
+    visit.sessionId || '',
+  ].join('|');
+};
+
 const dedupeVisits = (visits) => {
   const map = new Map();
   for (const v of visits) {
-    if (!v || typeof v !== 'object') continue;
-    const id = v.id ?? v.timestamp;
-    if (id == null) continue;
-    map.set(String(id), v);
+    const key = getVisitDedupeKey(v);
+    if (!key) continue;
+    const existing = map.get(key);
+    if (!existing || (v.timestamp || 0) >= (existing.timestamp || 0)) {
+      map.set(key, v);
+    }
   }
   return Array.from(map.values()).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 };
@@ -158,7 +174,8 @@ export const refreshAnalyticsFromGitHub = async () => {
   try {
     const { visits } = await fetchRepoAnalytics(config);
     const pending = getPendingVisits();
-    const merged = mergeVisits(visits, pending);
+    const cached = getCachedVisits();
+    const merged = mergeVisits(visits, cached, pending);
     setCachedVisits(merged);
     return merged;
   } catch {
@@ -180,7 +197,7 @@ export const syncPendingVisits = async () => {
     for (let attempt = 0; attempt < 4; attempt++) {
       try {
         const { visits: remote, sha } = await fetchRepoAnalytics(config);
-        const merged = mergeVisits(remote, pending);
+        const merged = mergeVisits(remote, getCachedVisits(), pending);
         const res = await putRepoAnalytics(config, merged, sha);
         if (res.ok) {
           setPendingVisits([]);
@@ -332,16 +349,22 @@ export const getRecordVisitorLabel = (record) => {
   return 'Unknown';
 };
 
-export const createVisitRecord = async (page) => {
+export const createVisitRecord = async (page, meta = {}) => {
   const visitorId = getOrCreateVisitorId();
   const displayName = getVisitorDisplayName();
   const { browser, os, device } = parseUserAgent(navigator.userAgent);
   const geo = await getVisitorNetworkContext();
 
+  const ts = Date.now();
   return {
-    id: Date.now(),
-    timestamp: Date.now(),
+    id: `${ts}-${Math.random().toString(36).slice(2, 11)}`,
+    timestamp: ts,
     page,
+    eventType: meta.eventType || 'pageview',
+    action: meta.action || '',
+    entityType: meta.entityType || '',
+    entityId: meta.entityId != null ? String(meta.entityId) : '',
+    entityName: meta.entityName || '',
     visitorId,
     visitorLabel: getVisitorLabel(visitorId),
     displayName,

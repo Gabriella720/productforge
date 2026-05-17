@@ -14,6 +14,7 @@ import {
   getPendingVisits,
   setPendingVisits,
 } from '../utils/analyticsApi';
+import { resolveAnalyticsPath } from '../utils/analyticsPaths';
 
 const DataContext = createContext();
 
@@ -168,7 +169,7 @@ export const DataProvider = ({ children }) => {
     setAnalyticsLoading(true);
     try {
       const data = await refreshAnalyticsFromGitHub();
-      setAnalytics(data);
+      setAnalytics((prev) => mergeVisits(data, prev));
     } finally {
       setAnalyticsLoading(false);
     }
@@ -309,24 +310,40 @@ export const DataProvider = ({ children }) => {
     }));
   };
 
-  const recordVisit = useCallback((page) => {
-    if (!shouldTrackPath(page)) return;
+  const pushVisit = useCallback(async (page, meta = {}) => {
+    if (!page || !shouldTrackPath(page)) return;
 
+    const dedupeKey = `${meta.eventType || 'pageview'}:${page}`;
     const now = Date.now();
-    const lastVisit = sessionStorage.getItem('lastVisit');
-    const lastPage = sessionStorage.getItem('lastPage');
-    if (lastVisit && now - parseInt(lastVisit, 10) < 1000 && lastPage === page) return;
+    const lastAt = sessionStorage.getItem('analyticsLastAt');
+    const lastKey = sessionStorage.getItem('analyticsLastKey');
+    if (lastAt && lastKey === dedupeKey && now - parseInt(lastAt, 10) < 800) return;
 
-    sessionStorage.setItem('lastVisit', now.toString());
-    sessionStorage.setItem('lastPage', page);
+    sessionStorage.setItem('analyticsLastAt', now.toString());
+    sessionStorage.setItem('analyticsLastKey', dedupeKey);
 
-    void (async () => {
-      const visitData = await createVisitRecord(page);
-      queueVisitForSync(visitData);
-      setAnalytics((prev) => mergeVisits([visitData, ...prev]).slice(0, 10000));
-      scheduleAnalyticsSync();
-    })();
+    const visitData = await createVisitRecord(page, meta);
+    queueVisitForSync(visitData);
+    setAnalytics((prev) => mergeVisits([visitData, ...prev]).slice(0, 10000));
+    scheduleAnalyticsSync();
   }, []);
+
+  const recordVisit = useCallback((pathname) => {
+    const page = resolveAnalyticsPath(pathname, { projects, blogPosts, language });
+    void pushVisit(page, { eventType: 'pageview' });
+  }, [projects, blogPosts, language, pushVisit]);
+
+  const trackEvent = useCallback((payload) => {
+    const page = payload?.page;
+    if (!page) return;
+    void pushVisit(page, {
+      eventType: payload.eventType || 'click',
+      action: payload.action || '',
+      entityType: payload.entityType || '',
+      entityId: payload.entityId,
+      entityName: payload.entityName || '',
+    });
+  }, [pushVisit]);
 
   const exportData = () => {
     const payload = {
@@ -385,7 +402,7 @@ export const DataProvider = ({ children }) => {
       siteNotice, updateSiteNotice,
       isAdmin, login, logout,
       language, setLanguage,
-      analytics, analyticsLoading, recordVisit, reloadAnalytics,
+      analytics, analyticsLoading, recordVisit, trackEvent, reloadAnalytics,
       exportData, importData
     }}>
       {children}
