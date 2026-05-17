@@ -1,5 +1,15 @@
 [
   {
+    "id": 1779028962896,
+    "timestamp": 1779028962896,
+    "page": "/",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x713",
+    "referrer": "Direct"
+  },
+  {
     "id": 1779028948620,
     "timestamp": 1779028948620,
     "page": "/",
@@ -8,6 +18,18 @@
     "platform": "MacIntel",
     "screenSize": "801x348",
     "referrer": "Direct"
+  },
+  {
+    "id": 1778853548994,
+    "timestamp": 1778853548994,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1440x679",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
+    "internalFrom": ""
   },
   {
     "id": 1778851309837,
@@ -19,6 +41,18 @@
     "screenSize": "801x350",
     "referrer": "http://localhost:5173/productforge/",
     "externalReferrer": "http://localhost:5173/productforge/",
+    "internalFrom": ""
+  },
+  {
+    "id": 1778851309742,
+    "timestamp": 1778851309742,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x713",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
     "internalFrom": ""
   },
   {
@@ -34,6 +68,18 @@
     "internalFrom": ""
   },
   {
+    "id": 1778827016999,
+    "timestamp": 1778827016999,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x713",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
+    "internalFrom": ""
+  },
+  {
     "id": 1778826970022,
     "timestamp": 1778826970022,
     "page": "/",
@@ -43,6 +89,30 @@
     "screenSize": "801x350",
     "referrer": "http://localhost:5173/productforge/",
     "externalReferrer": "http://localhost:5173/productforge/",
+    "internalFrom": ""
+  },
+  {
+    "id": 1778826969880,
+    "timestamp": 1778826969880,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x713",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
+    "internalFrom": ""
+  },
+  {
+    "id": 1778821082588,
+    "timestamp": 1778821082588,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x713",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
     "internalFrom": ""
   },
   {
@@ -58,6 +128,18 @@
     "internalFrom": ""
   },
   {
+    "id": 1778819575985,
+    "timestamp": 1778819575985,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x713",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
+    "internalFrom": ""
+  },
+  {
     "id": 1778819575772,
     "timestamp": 1778819575772,
     "page": "/",
@@ -67,6 +149,18 @@
     "screenSize": "801x350",
     "referrer": "http://localhost:5173/productforge/",
     "externalReferrer": "http://localhost:5173/productforge/",
+    "internalFrom": ""
+  },
+  {
+    "id": 1778818619311,
+    "timestamp": 1778818619311,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x713",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
     "internalFrom": ""
   },
   {
@@ -94,6 +188,18 @@
     "internalFrom": ""
   },
   {
+    "id": 1778817468158,
+    "timestamp": 1778817468158,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x713",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
+    "internalFrom": ""
+  },
+  {
     "id": 1778773916112,
     "timestamp": 1778773916112,
     "page": "/",
@@ -106,6 +212,18 @@
     "internalFrom": ""
   },
   {
+    "id": 1778773916065,
+    "timestamp": 1778773916065,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x713",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
+    "internalFrom": ""
+  },
+  {
     "id": 1778759757116,
     "timestamp": 1778759757116,
     "page": "/",
@@ -115,6 +233,30 @@
     "screenSize": "801x350",
     "referrer": "http://localhost:5173/productforge/",
     "externalReferrer": "http://localhost:5173/productforge/",
+    "internalFrom": ""
+  },
+  {
+    "id": 1778759757003,
+    "timestamp": 1778759757003,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x713",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
+    "internalFrom": ""
+  },
+  {
+    "id": 1778734523738,
+    "timestamp": 1778734523738,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x713",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
     "internalFrom": ""
   },
   {
@@ -142,6 +284,30 @@
     "internalFrom": ""
   },
   {
+    "id": 1778729267544,
+    "timestamp": 1778729267544,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x713",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
+    "internalFrom": ""
+  },
+  {
+    "id": 1778726026082,
+    "timestamp": 1778726026082,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x713",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
+    "internalFrom": ""
+  },
+  {
     "id": 1778726025951,
     "timestamp": 1778726025951,
     "page": "/",
@@ -166,6 +332,18 @@
     "internalFrom": ""
   },
   {
+    "id": 1778725872119,
+    "timestamp": 1778725872119,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x713",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
+    "internalFrom": ""
+  },
+  {
     "id": 1778725759583,
     "timestamp": 1778725759583,
     "page": "/",
@@ -175,6 +353,18 @@
     "screenSize": "801x350",
     "referrer": "http://localhost:5173/productforge/",
     "externalReferrer": "http://localhost:5173/productforge/",
+    "internalFrom": ""
+  },
+  {
+    "id": 1778725759154,
+    "timestamp": 1778725759154,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x713",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
     "internalFrom": ""
   },
   {
@@ -190,6 +380,18 @@
     "internalFrom": ""
   },
   {
+    "id": 1778687655737,
+    "timestamp": 1778687655737,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x713",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
+    "internalFrom": ""
+  },
+  {
     "id": 1778683264711,
     "timestamp": 1778683264711,
     "page": "/",
@@ -199,6 +401,30 @@
     "screenSize": "801x350",
     "referrer": "http://localhost:5173/productforge/",
     "externalReferrer": "http://localhost:5173/productforge/",
+    "internalFrom": ""
+  },
+  {
+    "id": 1778683264540,
+    "timestamp": 1778683264540,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x713",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
+    "internalFrom": ""
+  },
+  {
+    "id": 1778676739905,
+    "timestamp": 1778676739905,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x713",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
     "internalFrom": ""
   },
   {
@@ -214,6 +440,18 @@
     "internalFrom": ""
   },
   {
+    "id": 1778674422342,
+    "timestamp": 1778674422342,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x713",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
+    "internalFrom": ""
+  },
+  {
     "id": 1778674422004,
     "timestamp": 1778674422004,
     "page": "/",
@@ -223,6 +461,18 @@
     "screenSize": "801x350",
     "referrer": "http://localhost:5173/productforge/",
     "externalReferrer": "http://localhost:5173/productforge/",
+    "internalFrom": ""
+  },
+  {
+    "id": 1778672724302,
+    "timestamp": 1778672724302,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x713",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
     "internalFrom": ""
   },
   {
@@ -250,6 +500,18 @@
     "internalFrom": ""
   },
   {
+    "id": 1778670951901,
+    "timestamp": 1778670951901,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x713",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
+    "internalFrom": ""
+  },
+  {
     "id": 1778666291260,
     "timestamp": 1778666291260,
     "page": "/",
@@ -259,6 +521,18 @@
     "screenSize": "801x350",
     "referrer": "http://localhost:5173/productforge/",
     "externalReferrer": "http://localhost:5173/productforge/",
+    "internalFrom": ""
+  },
+  {
+    "id": 1778666291081,
+    "timestamp": 1778666291081,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x712",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
     "internalFrom": ""
   },
   {
@@ -274,6 +548,18 @@
     "internalFrom": ""
   },
   {
+    "id": 1778657879613,
+    "timestamp": 1778657879613,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x712",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
+    "internalFrom": ""
+  },
+  {
     "id": 1778651283274,
     "timestamp": 1778651283274,
     "page": "/",
@@ -283,6 +569,18 @@
     "screenSize": "801x350",
     "referrer": "http://localhost:5173/productforge/",
     "externalReferrer": "http://localhost:5173/productforge/",
+    "internalFrom": ""
+  },
+  {
+    "id": 1778651283129,
+    "timestamp": 1778651283129,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x712",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
     "internalFrom": ""
   },
   {
@@ -298,6 +596,18 @@
     "internalFrom": ""
   },
   {
+    "id": 1778648782609,
+    "timestamp": 1778648782609,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x712",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
+    "internalFrom": ""
+  },
+  {
     "id": 1778646982018,
     "timestamp": 1778646982018,
     "page": "/",
@@ -307,6 +617,30 @@
     "screenSize": "801x350",
     "referrer": "http://localhost:5173/productforge/",
     "externalReferrer": "http://localhost:5173/productforge/",
+    "internalFrom": ""
+  },
+  {
+    "id": 1778646981726,
+    "timestamp": 1778646981726,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x712",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
+    "internalFrom": ""
+  },
+  {
+    "id": 1778645649727,
+    "timestamp": 1778645649727,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x712",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
     "internalFrom": ""
   },
   {
@@ -334,6 +668,18 @@
     "internalFrom": ""
   },
   {
+    "id": 1778642851691,
+    "timestamp": 1778642851691,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x712",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
+    "internalFrom": ""
+  },
+  {
     "id": 1778642636821,
     "timestamp": 1778642636821,
     "page": "/",
@@ -346,6 +692,30 @@
     "internalFrom": ""
   },
   {
+    "id": 1778642636679,
+    "timestamp": 1778642636679,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x712",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
+    "internalFrom": ""
+  },
+  {
+    "id": 1778600757562,
+    "timestamp": 1778600757562,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x712",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
+    "internalFrom": ""
+  },
+  {
     "id": 1778600757391,
     "timestamp": 1778600757391,
     "page": "/",
@@ -355,6 +725,18 @@
     "screenSize": "801x350",
     "referrer": "http://localhost:5173/productforge/",
     "externalReferrer": "http://localhost:5173/productforge/",
+    "internalFrom": ""
+  },
+  {
+    "id": 1778596226146,
+    "timestamp": 1778596226146,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1548x707",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
     "internalFrom": ""
   },
   {
@@ -382,6 +764,18 @@
     "internalFrom": ""
   },
   {
+    "id": 1778593026922,
+    "timestamp": 1778593026922,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1548x707",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
+    "internalFrom": ""
+  },
+  {
     "id": 1778565950081,
     "timestamp": 1778565950081,
     "page": "/",
@@ -391,6 +785,18 @@
     "screenSize": "801x350",
     "referrer": "http://localhost:5173/productforge/",
     "externalReferrer": "http://localhost:5173/productforge/",
+    "internalFrom": ""
+  },
+  {
+    "id": 1778565949815,
+    "timestamp": 1778565949815,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1548x707",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
     "internalFrom": ""
   },
   {
@@ -406,6 +812,30 @@
     "internalFrom": ""
   },
   {
+    "id": 1778555147145,
+    "timestamp": 1778555147145,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1548x707",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
+    "internalFrom": ""
+  },
+  {
+    "id": 1778515659547,
+    "timestamp": 1778515659547,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1548x707",
+    "referrer": "http://localhost:5173/productforge/about",
+    "externalReferrer": "http://localhost:5173/productforge/about",
+    "internalFrom": ""
+  },
+  {
     "id": 1778515659440,
     "timestamp": 1778515659440,
     "page": "/",
@@ -415,6 +845,138 @@
     "screenSize": "801x350",
     "referrer": "http://localhost:5173/productforge/",
     "externalReferrer": "http://localhost:5173/productforge/",
+    "internalFrom": ""
+  },
+  {
+    "id": 1778515166274,
+    "timestamp": 1778515166274,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1548x707",
+    "referrer": "Direct",
+    "externalReferrer": "",
+    "internalFrom": ""
+  },
+  {
+    "id": 1778515161494,
+    "timestamp": 1778515161494,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1548x707",
+    "referrer": "internal:/blog",
+    "externalReferrer": "",
+    "internalFrom": "/blog"
+  },
+  {
+    "id": 1778515160658,
+    "timestamp": 1778515160658,
+    "page": "/blog",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1548x707",
+    "referrer": "internal:/projects",
+    "externalReferrer": "",
+    "internalFrom": "/projects"
+  },
+  {
+    "id": 1778515159876,
+    "timestamp": 1778515159876,
+    "page": "/projects",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1548x707",
+    "referrer": "internal:/",
+    "externalReferrer": "",
+    "internalFrom": "/"
+  },
+  {
+    "id": 1778515154696,
+    "timestamp": 1778515154696,
+    "page": "/",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1548x707",
+    "referrer": "internal:/about",
+    "externalReferrer": "",
+    "internalFrom": "/about"
+  },
+  {
+    "id": 1778515150148,
+    "timestamp": 1778515150148,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1548x707",
+    "referrer": "Direct",
+    "externalReferrer": "",
+    "internalFrom": ""
+  },
+  {
+    "id": 1778515120608,
+    "timestamp": 1778515120608,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1548x707",
+    "referrer": "internal:/blog",
+    "externalReferrer": "",
+    "internalFrom": "/blog"
+  },
+  {
+    "id": 1778515117657,
+    "timestamp": 1778515117657,
+    "page": "/blog",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1548x707",
+    "referrer": "Direct",
+    "externalReferrer": "",
+    "internalFrom": ""
+  },
+  {
+    "id": 1778515110146,
+    "timestamp": 1778515110146,
+    "page": "/blog",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1548x707",
+    "referrer": "internal:/about",
+    "externalReferrer": "",
+    "internalFrom": "/about"
+  },
+  {
+    "id": 1778515106314,
+    "timestamp": 1778515106314,
+    "page": "/about",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1548x707",
+    "referrer": "internal:/",
+    "externalReferrer": "",
+    "internalFrom": "/"
+  },
+  {
+    "id": 1778515102534,
+    "timestamp": 1778515102534,
+    "page": "/",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1548x707",
+    "referrer": "Direct",
+    "externalReferrer": "",
     "internalFrom": ""
   },
   {
