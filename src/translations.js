@@ -32,6 +32,10 @@ export const translations = {
       clearSearch: "Clear Search",
       views: "views",
       readMore: "Read More",
+      translating: "Translating…",
+      translatingHint: "This may take a minute for long articles.",
+      autoTranslated: "Auto-translated",
+      translationFailed: "Translation unavailable. Showing original text.",
     },
     blogDetail: {
       back: "Back to Blog",
@@ -55,6 +59,7 @@ export const translations = {
       subtitle: "A collection of innovative projects focusing on AI, design, and user experience.",
       code: "Source Code",
       demo: "Live Demo",
+      translating: "Translating…",
     },
     login: {
       title: "Admin Access",
@@ -147,6 +152,10 @@ export const translations = {
       clearSearch: "清空搜索",
       views: "阅读量",
       readMore: "阅读更多",
+      translating: "正在翻译…",
+      translatingHint: "长文章翻译可能需要一分钟，请稍候。",
+      autoTranslated: "机器翻译",
+      translationFailed: "翻译暂不可用，已显示原文。",
     },
     blogDetail: {
       back: "返回博客",
@@ -170,6 +179,7 @@ export const translations = {
       subtitle: "专注于 AI、设计和用户体验的创新项目集合。",
       code: "源代码",
       demo: "在线演示",
+      translating: "正在翻译…",
     },
     login: {
       title: "管理后台登录",

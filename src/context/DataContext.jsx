@@ -15,6 +15,51 @@ import {
   setPendingVisits,
 } from '../utils/analyticsApi';
 import { resolveAnalyticsPath } from '../utils/analyticsPaths';
+import { detectContentLanguage } from '../utils/blogLocale';
+
+const normalizeProjectTags = (tags) =>
+  (Array.isArray(tags) ? tags : []).map((t) => String(t).trim()).filter(Boolean);
+
+const normalizeProject = (project) => {
+  const base = project && typeof project === 'object' ? project : {};
+  const i18nRaw = base.i18n && typeof base.i18n === 'object' ? base.i18n : {};
+  const i18nEn = i18nRaw.en && typeof i18nRaw.en === 'object' ? i18nRaw.en : {};
+  const i18nZh = i18nRaw.zh && typeof i18nRaw.zh === 'object' ? i18nRaw.zh : {};
+  const fallbackTags = normalizeProjectTags(base.tags);
+
+  let en = {
+    title: (i18nEn.title ?? base.title ?? '').toString(),
+    description: (i18nEn.description ?? base.description ?? '').toString(),
+    tags: normalizeProjectTags(i18nEn.tags?.length ? i18nEn.tags : fallbackTags),
+  };
+
+  let zh = {
+    title: (i18nZh.title ?? '').toString(),
+    description: (i18nZh.description ?? '').toString(),
+    tags: normalizeProjectTags(i18nZh.tags),
+  };
+
+  if (!en.title && !en.description && !en.tags.length) {
+    en = {
+      title: (base.title ?? '').toString(),
+      description: (base.description ?? '').toString(),
+      tags: fallbackTags,
+    };
+  }
+
+  const zhEmpty = !zh.title && !zh.description && !zh.tags.length;
+  if (zhEmpty) {
+    zh = { ...en };
+  }
+
+  return {
+    ...base,
+    i18n: { en, zh },
+    title: en.title,
+    description: en.description,
+    tags: en.tags,
+  };
+};
 
 const DataContext = createContext();
 
@@ -69,7 +114,14 @@ export const DataProvider = ({ children }) => {
   };
 
   const draftKey = 'adminDraftSiteData';
-  const draftRaw = (localStorage.getItem('isAdmin') === 'true') ? localStorage.getItem(draftKey) : null;
+
+  const shouldLoadAdminDraft = () => {
+    if (typeof window === 'undefined') return false;
+    const path = window.location.pathname || '';
+    return localStorage.getItem('isAdmin') === 'true' && path.includes('/admin');
+  };
+
+  const draftRaw = shouldLoadAdminDraft() ? localStorage.getItem(draftKey) : null;
   const draft = draftRaw ? safeParseJson(draftRaw) : null;
 
   const normalizeBlogPost = (post) => {
@@ -82,24 +134,51 @@ export const DataProvider = ({ children }) => {
     const fallbackDesc = (base.description ?? '').toString();
     const fallbackContent = (base.content ?? '').toString();
 
-    const en = {
-      title: (i18nEn.title ?? fallbackTitle).toString(),
-      description: (i18nEn.description ?? fallbackDesc).toString(),
-      content: (i18nEn.content ?? fallbackContent).toString(),
+    let en = {
+      title: (i18nEn.title ?? '').toString(),
+      description: (i18nEn.description ?? '').toString(),
+      content: (i18nEn.content ?? '').toString(),
     };
 
-    const zh = {
-      title: (i18nZh.title ?? fallbackTitle).toString(),
-      description: (i18nZh.description ?? fallbackDesc).toString(),
-      content: (i18nZh.content ?? fallbackContent).toString(),
+    let zh = {
+      title: (i18nZh.title ?? '').toString(),
+      description: (i18nZh.description ?? '').toString(),
+      content: (i18nZh.content ?? '').toString(),
     };
+
+    if (!en.title && !en.content) {
+      en = {
+        title: fallbackTitle,
+        description: fallbackDesc,
+        content: fallbackContent,
+      };
+    }
+
+    const enLang = detectContentLanguage(`${en.title} ${en.description} ${en.content}`);
+    const zhLang = detectContentLanguage(`${zh.title} ${zh.description} ${zh.content}`);
+    const zhEmpty = !zh.title && !zh.description && !zh.content;
+
+    // Articles saved in EN tab but written in Chinese; ZH may be empty or old English templates
+    if (enLang === 'zh' && (zhEmpty || zhLang === 'en')) {
+      zh = { ...en };
+    } else if (zhLang === 'zh' && !en.content && !en.title) {
+      en = { ...zh };
+    } else if (zhEmpty) {
+      zh = {
+        title: fallbackTitle,
+        description: fallbackDesc,
+        content: fallbackContent,
+      };
+    }
+
+    const primary = detectContentLanguage(`${zh.title} ${zh.content}`) === 'zh' ? zh : en;
 
     return {
       ...base,
       i18n: { en, zh },
-      title: en.title,
-      description: en.description,
-      content: en.content,
+      title: primary.title || fallbackTitle,
+      description: primary.description || fallbackDesc,
+      content: primary.content || fallbackContent,
     };
   };
 
@@ -134,14 +213,9 @@ export const DataProvider = ({ children }) => {
     };
   };
 
-  const [projects, setProjects] = useState(() => {
-    return Array.isArray(draft?.projects) ? draft.projects : initialProjects;
-  });
+  const [projects, setProjects] = useState(() => initialProjects.map(normalizeProject));
 
-  const [blogPosts, setBlogPosts] = useState(() => {
-    const arr = Array.isArray(draft?.blogPosts) ? draft.blogPosts : initialBlogPosts;
-    return Array.isArray(arr) ? arr.map(normalizeBlogPost) : initialBlogPosts.map(normalizeBlogPost);
-  });
+  const [blogPosts, setBlogPosts] = useState(() => initialBlogPosts.map(normalizeBlogPost));
 
   const [aboutInfo, setAboutInfo] = useState(() => {
     const base = draft?.aboutInfo && typeof draft.aboutInfo === 'object' ? draft.aboutInfo : initialAboutInfo;
@@ -214,11 +288,12 @@ export const DataProvider = ({ children }) => {
 
   useEffect(() => {
     if (!isAdmin) return;
+    if (typeof window !== 'undefined' && !window.location.pathname.includes('/admin')) return;
     const raw = localStorage.getItem(draftKey);
     if (!raw) return;
     const parsed = safeParseJson(raw);
     if (!parsed || typeof parsed !== 'object') return;
-    if (Array.isArray(parsed.projects)) setProjects(parsed.projects);
+    if (Array.isArray(parsed.projects)) setProjects(parsed.projects.map(normalizeProject));
     if (Array.isArray(parsed.blogPosts)) setBlogPosts(parsed.blogPosts.map(normalizeBlogPost));
     if (parsed.aboutInfo && typeof parsed.aboutInfo === 'object') setAboutInfo(normalizeAboutInfo(parsed.aboutInfo));
     if (parsed.siteNotice && typeof parsed.siteNotice === 'object') setSiteNotice(normalizeSiteNotice(parsed.siteNotice));
@@ -245,12 +320,13 @@ export const DataProvider = ({ children }) => {
   };
 
   const addProject = (project) => {
-    const newProject = { ...project, id: Date.now() };
+    const newProject = normalizeProject({ ...project, id: Date.now() });
     setProjects(prev => [newProject, ...(Array.isArray(prev) ? prev : [])]);
   };
 
   const updateProject = (updatedProject) => {
-    setProjects(prev => (Array.isArray(prev) ? prev.map(p => p.id === updatedProject.id ? updatedProject : p) : prev));
+    const next = normalizeProject(updatedProject);
+    setProjects(prev => (Array.isArray(prev) ? prev.map(p => p.id === next.id ? next : p) : prev));
   };
 
   const deleteProject = (id) => {
@@ -379,7 +455,10 @@ export const DataProvider = ({ children }) => {
   const importData = (json) => {
     try {
       const data = typeof json === 'string' ? JSON.parse(json) : json;
-      if (data.projects) setProjects(data.projects);
+      if (data.projects) {
+        const arr = Array.isArray(data.projects) ? data.projects : [];
+        setProjects(arr.map(normalizeProject));
+      }
       if (data.blogPosts) {
         const arr = Array.isArray(data.blogPosts) ? data.blogPosts : [];
         setBlogPosts(arr.map(normalizeBlogPost));

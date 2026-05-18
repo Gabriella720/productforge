@@ -5,16 +5,25 @@ import {
   MessageSquare, Send, Smile, Image as ImageIcon, X 
 } from 'lucide-react';
 import { useData, useTranslation } from '../context/DataContext';
+import { useBlogLocale } from '../hooks/useBlogLocale';
+import { getPrimarySourceLocale } from '../utils/blogLocale';
 
 const BlogDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const t = useTranslation();
-  const { blogPosts, incrementView, incrementLike, incrementShare, addComment, language } = useData();
+  const { blogPosts, incrementView, incrementLike, incrementShare, addComment } = useData();
   const post = blogPosts.find(p => p.id === parseInt(id));
-  const i18n = post?.i18n?.[language] || post?.i18n?.en || post?.i18n?.zh || {};
-  const postTitle = i18n.title || post?.title || '';
-  const postContent = i18n.content || post?.content || '';
+  const {
+    title: postTitle,
+    content: postContent,
+    loading: localeLoading,
+    isAutoTranslated,
+    error: localeError,
+  } = useBlogLocale(post);
+
+  const fallbackContent = post ? getPrimarySourceLocale(post).content : '';
+  const displayContent = (postContent || '').trim() || fallbackContent;
 
   const [commentText, setCommentText] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
@@ -89,8 +98,16 @@ const BlogDetail = () => {
       {/* Header */}
       <div className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
         <h1 className="text-4xl md:text-6xl font-black text-text-main mb-8 leading-[1.1] tracking-tight">
-          {postTitle}
+          {localeLoading ? t('blog.translating') : postTitle}
         </h1>
+        {isAutoTranslated && (
+          <p className="text-xs font-bold text-brand/80 uppercase tracking-widest mb-4 -mt-4">
+            {t('blog.autoTranslated')}
+          </p>
+        )}
+        {localeError && (
+          <p className="text-sm text-amber-700 mb-4">{t('blog.translationFailed')}</p>
+        )}
         
         <div className="flex flex-wrap items-center gap-6 text-text-muted/80 font-bold text-xs uppercase tracking-widest mb-8">
           <div className="flex items-center">
@@ -114,7 +131,14 @@ const BlogDetail = () => {
         prose-a:text-brand prose-a:font-bold prose-a:no-underline hover:prose-a:underline
         rich-text-content
       ">
-        <div dangerouslySetInnerHTML={{ __html: postContent }} />
+        {localeLoading ? (
+          <div className="py-16 text-center">
+            <p className="text-brand font-bold text-sm uppercase tracking-widest mb-2">{t('blog.translating')}</p>
+            <p className="text-text-muted text-sm font-medium">{t('blog.translatingHint')}</p>
+          </div>
+        ) : (
+          <div dangerouslySetInnerHTML={{ __html: displayContent }} />
+        )}
       </article>
 
       {/* Social Actions */}
