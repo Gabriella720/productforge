@@ -9,13 +9,21 @@ import About from './pages/About';
 import Admin from './pages/Admin';
 import Login from './pages/Login';
 import { DataProvider, useData } from './context/DataContext';
+import { prefetchVisitorNetwork } from './utils/analyticsApi';
 
 const AnalyticsTracker = () => {
   const location = useLocation();
   const { recordVisit } = useData();
 
   useEffect(() => {
-    recordVisit(location.pathname);
+    let cancelled = false;
+    (async () => {
+      await prefetchVisitorNetwork();
+      if (!cancelled) recordVisit(location.pathname);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [location.pathname, recordVisit]);
 
   return null;

@@ -481,6 +481,51 @@ const VisitorTrendChart = ({ data, maxCount, formatLabel, viewsLabel }) => {
   );
 };
 
+const formatLogLocation = (record) => {
+  if (!record) return '';
+  const loc = (record.location || '').trim();
+  if (loc) return loc;
+  return [record.city, record.region, record.country].filter(Boolean).join(', ');
+};
+
+const LogReferrerCell = ({ referrer }) => {
+  const value = (referrer || '').trim() || 'Direct';
+  if (value === 'Direct') {
+    return (
+      <td className="px-6 py-4 text-text-muted italic whitespace-nowrap align-top">
+        Direct
+      </td>
+    );
+  }
+  return (
+    <td className="px-6 py-4 align-top min-w-[200px] max-w-[360px]">
+      <a
+        href={value}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={value}
+        className="text-brand text-xs hover:underline break-all whitespace-normal leading-relaxed"
+      >
+        {value}
+      </a>
+    </td>
+  );
+};
+
+const LogLocationCell = ({ record }) => {
+  const text = formatLogLocation(record);
+  if (!text) {
+    return <td className="px-6 py-4 text-text-muted whitespace-nowrap">—</td>;
+  }
+  return (
+    <td className="px-6 py-4 text-text-muted align-top min-w-[120px] max-w-[220px]">
+      <span title={text} className="break-words whitespace-normal text-xs leading-relaxed">
+        {text}
+      </span>
+    </td>
+  );
+};
+
 const AnalyticsDashboard = ({ analytics, loading, onRefresh }) => {
   const t = useTranslation();
   const [range, setRange] = useState('7d');
@@ -663,10 +708,10 @@ const AnalyticsDashboard = ({ analytics, loading, onRefresh }) => {
                       <span className="block text-[10px] text-text-muted font-normal mt-0.5">{record.visitorId}</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-text-main whitespace-nowrap">{record.ip || '—'}</td>
-                  <td className="px-6 py-4 text-text-muted max-w-[140px] truncate" title={record.location || record.country || ''}>
-                    {record.location || record.country || '—'}
+                  <td className="px-6 py-4 text-text-main whitespace-nowrap font-mono text-xs">
+                    {record.ip || '—'}
                   </td>
+                  <LogLocationCell record={record} />
                   <td className="px-6 py-4 text-text-main text-xs whitespace-nowrap">
                     {[record.browser, record.os, record.device].filter(Boolean).join(' · ') || record.platform || '—'}
                   </td>
@@ -681,7 +726,7 @@ const AnalyticsDashboard = ({ analytics, loading, onRefresh }) => {
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-text-muted italic max-w-[120px] truncate">{record.referrer}</td>
+                  <LogReferrerCell referrer={record.referrer} />
                 </tr>
               ))
               )}

@@ -302,38 +302,93 @@ const formatLocation = (geo) => {
   return parts.join(', ');
 };
 
-const getVisitorNetworkContext = async () => {
+const GEO_CACHE_TTL_MS = 60 * 60 * 1000;
+const GEO_FETCH_TIMEOUT_MS = 4500;
+
+const readGeoCache = () => {
   try {
-    const cached = sessionStorage.getItem(GEO_CACHE_KEY);
-    if (cached) {
+    for (const store of [localStorage, sessionStorage]) {
+      const cached = store.getItem(GEO_CACHE_KEY);
+      if (!cached) continue;
       const parsed = safeParse(cached, null);
-      if (parsed?.expires > Date.now()) return parsed.data;
+      if (parsed?.expires > Date.now() && parsed?.data?.ip) return parsed.data;
     }
   } catch {
     // ignore
   }
+  return null;
+};
 
+const writeGeoCache = (data) => {
+  if (!data?.ip) return;
+  const payload = JSON.stringify({ expires: Date.now() + GEO_CACHE_TTL_MS, data });
   try {
-    const res = await fetch('https://ipwho.is/', { cache: 'no-store' });
-    if (!res.ok) return null;
-    const json = await res.json();
-    if (!json?.success) return null;
-    const data = {
-      ip: json.ip || '',
-      country: json.country || '',
-      region: json.region || '',
-      city: json.city || '',
-      isp: json.connection?.isp || json.isp || '',
-    };
-    sessionStorage.setItem(
-      GEO_CACHE_KEY,
-      JSON.stringify({ expires: Date.now() + 30 * 60 * 1000, data })
-    );
-    return data;
+    localStorage.setItem(GEO_CACHE_KEY, payload);
+    sessionStorage.setItem(GEO_CACHE_KEY, payload);
   } catch {
-    return null;
+    // ignore quota errors
   }
 };
+
+const fetchJsonWithTimeout = async (url, timeoutMs = GEO_FETCH_TIMEOUT_MS) => {
+  const ctrl = new AbortController();
+  const timer = window.setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { cache: 'no-store', signal: ctrl.signal });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  } finally {
+    window.clearTimeout(timer);
+  }
+};
+
+const geoFromIpwho = async () => {
+  const json = await fetchJsonWithTimeout('https://ipwho.is/');
+  if (!json?.success || !json.ip) return null;
+  return {
+    ip: json.ip || '',
+    country: json.country || '',
+    region: json.region || '',
+    city: json.city || '',
+    isp: json.connection?.isp || json.isp || '',
+  };
+};
+
+const geoFromIpinfo = async () => {
+  const json = await fetchJsonWithTimeout('https://ipinfo.io/json');
+  if (!json?.ip) return null;
+  return {
+    ip: json.ip || '',
+    country: json.country || '',
+    region: json.region || '',
+    city: json.city || '',
+    isp: (json.org || '').toString(),
+  };
+};
+
+const getVisitorNetworkContext = async () => {
+  const cached = readGeoCache();
+  if (cached) return cached;
+
+  const providers = [geoFromIpwho, geoFromIpinfo];
+  for (const provider of providers) {
+    try {
+      const data = await provider();
+      if (data?.ip) {
+        writeGeoCache(data);
+        return data;
+      }
+    } catch {
+      // try next provider
+    }
+  }
+  return null;
+};
+
+/** Warm geo cache early so pageview records include IP/location. */
+export const prefetchVisitorNetwork = () => getVisitorNetworkContext();
 
 export const getVisitorLabel = (visitorId) => {
   const id = (visitorId || getOrCreateVisitorId()).toString();
