@@ -1,5 +1,15 @@
 [
   {
+    "id": 1779334136175,
+    "timestamp": 1779334136175,
+    "page": "/admin",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+    "language": "zh-CN",
+    "platform": "MacIntel",
+    "screenSize": "1600x712",
+    "referrer": "Direct"
+  },
+  {
     "id": "1779293180786-jqjtg7xku",
     "timestamp": 1779293180786,
     "page": "/",
