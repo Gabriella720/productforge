@@ -120,7 +120,7 @@ const BlogDetail = () => {
         <div className={mainColumnClass}>
       {/* Header */}
       <div className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <h1 className="text-4xl md:text-6xl font-black text-text-main mb-8 leading-[1.1] tracking-tight">
+        <h1 className="text-2xl md:text-3xl font-black text-text-main mb-8 leading-[1.1] tracking-tight">
           {localeLoading ? t('blog.translating') : postTitle}
         </h1>
         {isAutoTranslated && (
