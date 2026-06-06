@@ -1,9 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Calendar, ArrowRight, Eye, Heart, Share2, Search, X } from 'lucide-react';
 import { useData, useTranslation } from '../context/DataContext';
 import { Link } from 'react-router-dom';
 import { useBlogLocale } from '../hooks/useBlogLocale';
 import { getDisplayLocaleBlock, needsAutoTranslation } from '../utils/blogLocale';
+
+const useIsTruncated = (ref, text) => {
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+
+    const check = () => {
+      setIsTruncated(el.scrollHeight > el.clientHeight + 1);
+    };
+
+    check();
+    const observer = new ResizeObserver(check);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref, text]);
+
+  return isTruncated;
+};
 
 const BlogPostCard = ({ post, language, t }) => {
   const base = getDisplayLocaleBlock(post, language);
@@ -13,13 +33,15 @@ const BlogPostCard = ({ post, language, t }) => {
     ? (loading && !title ? t('blog.translating') : (title || base.title))
     : base.title;
   const displayDescription = shouldTranslate ? (description || base.description) : base.description;
+  const descriptionRef = useRef(null);
+  const isDescriptionTruncated = useIsTruncated(descriptionRef, displayDescription);
 
   return (
     <Link
       to={`/blog/${post.id}`}
-      className="flex flex-col border border-border-soft rounded-2xl overflow-hidden bg-white hover:shadow-[0_20px_40px_rgba(59,130,246,0.1)] transition-all duration-500 group hover:-translate-y-1"
+      className="relative flex flex-col border border-border-soft rounded-2xl bg-white hover:shadow-[0_20px_40px_rgba(59,130,246,0.1)] transition-all duration-500 group hover:-translate-y-1 hover:z-20"
     >
-      <div className="relative overflow-hidden aspect-[2/1] shrink-0">
+      <div className="relative overflow-hidden rounded-t-2xl aspect-[16/10] shrink-0">
         <div className="absolute inset-0 bg-bg-main" />
         <img
           src={post.image}
@@ -41,9 +63,22 @@ const BlogPostCard = ({ post, language, t }) => {
           {displayTitle}
         </h3>
 
-        <p className="text-sm text-text-muted mb-4 leading-relaxed font-medium line-clamp-2 group-hover:text-text-main/80 transition-colors duration-300">
-          {displayDescription}
-        </p>
+        <div className="relative mb-4">
+          <p
+            ref={descriptionRef}
+            className="text-sm text-text-muted leading-relaxed font-medium line-clamp-2 group-hover:text-text-main/80 transition-colors duration-300"
+          >
+            {displayDescription}
+          </p>
+          {isDescriptionTruncated && displayDescription && (
+            <div
+              role="tooltip"
+              className="pointer-events-none absolute left-0 right-0 bottom-full z-30 mb-2 max-h-36 overflow-y-auto rounded-xl border border-border-soft bg-white px-3 py-2.5 text-sm leading-relaxed text-text-muted shadow-lg opacity-0 invisible translate-y-1 transition-all duration-200 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0"
+            >
+              {displayDescription}
+            </div>
+          )}
+        </div>
 
         <div className="mt-auto pt-4 border-t border-border-soft flex items-center justify-between">
           <span className="text-xs font-bold text-brand group-hover:text-brand-hover transition-colors duration-300 flex items-center">
