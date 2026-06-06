@@ -100,6 +100,355 @@ body {
   list-style-type: disc !important;
 }
 
+/* Markdown-rendered blog content — Feishu / Lark article theme */
+.blog-article-shell {
+  max-width: none;
+}
+
+.article-feishu {
+  --md-coral: #EE7663;
+  --md-blue-label: #3a8fb7;
+  --md-blue-line: #4A90E2;
+  --md-red-accent: #E57373;
+  --md-insights-bg: #FDFBF7;
+  --md-callout-bg: #FFF5F5;
+  --md-page-bg: #F7F9FB;
+  --md-text: #1F2937;
+  --md-text-body: #333333;
+
+  background: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  font-size: 17px !important;
+  line-height: 1.75 !important;
+  color: var(--md-text-body) !important;
+}
+
+.article-feishu p {
+  margin-bottom: 1.15em !important;
+  color: var(--md-text-body) !important;
+  font-weight: 400 !important;
+}
+
+.article-feishu strong {
+  font-weight: 700 !important;
+  color: var(--md-text) !important;
+}
+
+.article-feishu .md-lead-strong,
+.article-feishu .md-list-label,
+.article-feishu .md-numbered-heading {
+  color: var(--md-blue-label) !important;
+  font-weight: 700 !important;
+}
+
+.article-feishu a {
+  color: var(--md-blue-label) !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+}
+
+.article-feishu a:hover {
+  text-decoration: underline !important;
+}
+
+/* H2 — inline coral label + extending bottom line */
+.article-feishu .md-h2-wrap {
+  display: flex !important;
+  align-items: flex-end !important;
+  gap: 0 !important;
+  margin: 2.25em 0 1.35em !important;
+  width: 100% !important;
+}
+
+.article-feishu .md-h2-wrap::after {
+  content: '' !important;
+  flex: 1 1 auto !important;
+  height: 2px !important;
+  background: var(--md-coral) !important;
+  margin-bottom: 0.35em !important;
+  min-width: 2rem !important;
+}
+
+.article-feishu .md-h2-banner {
+  display: inline-block !important;
+  background: var(--md-coral) !important;
+  color: #fff !important;
+  font-size: clamp(1.15rem, 2.2vw, 1.35rem) !important;
+  font-weight: 700 !important;
+  text-align: left !important;
+  padding: 0.55em 0.95em !important;
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 3px !important;
+  line-height: 1.4 !important;
+  letter-spacing: 0.01em !important;
+  flex-shrink: 0 !important;
+}
+
+/* H5 section — black title + blue underline */
+.article-feishu .md-h5-section {
+  font-size: 1.05rem !important;
+  font-weight: 700 !important;
+  color: var(--md-text) !important;
+  margin: 2em 0 0.85em !important;
+  padding-bottom: 0.45em !important;
+  border-bottom: 2px solid var(--md-blue-line) !important;
+  line-height: 1.45 !important;
+}
+
+/* H6 minor subheading — black bold */
+.article-feishu .md-h6-minor {
+  font-size: 0.98rem !important;
+  font-weight: 700 !important;
+  color: var(--md-text) !important;
+  margin: 1.65em 0 0.65em !important;
+  line-height: 1.45 !important;
+}
+
+/* Opening insights card — cream bg, red left bar, blue title underline */
+.article-feishu .md-insights-card {
+  background: var(--md-insights-bg) !important;
+  border: none !important;
+  border-left: 3px solid var(--md-red-accent) !important;
+  border-radius: 0 !important;
+  padding: 1.25rem 1.35rem 1.15rem !important;
+  margin: 0 0 2rem !important;
+  color: var(--md-text-body) !important;
+}
+
+.article-feishu .md-insights-card > .md-h5-insight-title {
+  display: block !important;
+  font-size: 1.2rem !important;
+  font-weight: 700 !important;
+  color: var(--md-text) !important;
+  margin: 0 0 1rem !important;
+  padding: 0 0 0.55em !important;
+  border: none !important;
+  border-bottom: 1px solid var(--md-blue-line) !important;
+}
+
+.article-feishu .md-insights-card > .md-h5-insight-title::before {
+  display: none !important;
+  content: none !important;
+}
+
+.article-feishu .md-insights-card > .md-h6-minor,
+.article-feishu .md-insight-point {
+  color: var(--md-blue-label) !important;
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  margin-top: 1.15rem !important;
+  margin-bottom: 0.35rem !important;
+}
+
+.article-feishu .md-insights-card > p {
+  margin-bottom: 0.5em !important;
+  color: var(--md-text-body) !important;
+  font-size: 0.95rem !important;
+  font-weight: 400 !important;
+}
+
+.article-feishu .md-insights-card strong {
+  color: var(--md-text) !important;
+  font-weight: 700 !important;
+}
+
+/* Callout blockquotes — pink bg, red left bar, blue emphasis */
+.article-feishu .md-callout {
+  background: var(--md-callout-bg) !important;
+  border: none !important;
+  border-left: 3px solid var(--md-red-accent) !important;
+  border-radius: 0 !important;
+  padding: 0.85rem 1.1rem !important;
+  margin: 1.15em 0 !important;
+  color: var(--md-text-body) !important;
+  font-style: normal !important;
+}
+
+.article-feishu .md-callout strong {
+  color: var(--md-blue-label) !important;
+  font-weight: 700 !important;
+}
+
+.article-feishu .md-callout p {
+  margin-bottom: 0.35em !important;
+  color: var(--md-text-body) !important;
+}
+
+.article-feishu .md-callout p:last-child {
+  margin-bottom: 0 !important;
+}
+
+.article-feishu .md-callout-inline {
+  margin: 0.65em 0 !important;
+  padding: 0.65rem 0.9rem !important;
+}
+
+.article-feishu li .md-callout {
+  margin-top: 0.5em !important;
+}
+
+/* Lists — Feishu export style */
+.article-feishu .md-feishu-list,
+.article-feishu ul {
+  padding-left: 1.4em !important;
+  margin: 0.65em 0 1.15em !important;
+  list-style-type: disc !important;
+}
+
+.article-feishu ol {
+  padding-left: 1.4em !important;
+  margin: 0.65em 0 1.15em !important;
+  list-style-type: decimal !important;
+}
+
+.article-feishu li {
+  margin-bottom: 0.65em !important;
+  color: var(--md-text-body) !important;
+  line-height: 1.65 !important;
+}
+
+.article-feishu li::marker {
+  color: var(--md-text-body) !important;
+}
+
+.article-feishu li > p {
+  margin: 0 0 0.75em !important;
+  color: var(--md-text-body) !important;
+}
+
+.article-feishu li > p:first-child {
+  margin-bottom: 0.45em !important;
+}
+
+.article-feishu li > p:last-child {
+  margin-bottom: 0 !important;
+}
+
+.article-feishu li > p + p {
+  margin-top: 0 !important;
+}
+
+.article-feishu .md-list-label {
+  color: var(--md-blue-label) !important;
+  font-weight: 700 !important;
+}
+
+.article-feishu li .md-callout,
+.article-feishu li .md-callout-inline {
+  margin: 0.5em 0 0.75em !important;
+}
+
+.article-feishu li .md-callout p,
+.article-feishu li .md-callout-inline p {
+  color: var(--md-text-body) !important;
+  font-weight: 400 !important;
+}
+
+.article-feishu li .md-callout strong,
+.article-feishu li .md-callout-inline strong {
+  color: var(--md-text-body) !important;
+  font-weight: 400 !important;
+}
+
+.article-feishu li > br {
+  display: block !important;
+  margin-top: 0.45em !important;
+  content: '' !important;
+}
+
+/* Figures / diagrams */
+.article-feishu .md-figure,
+.article-feishu img {
+  display: block !important;
+  max-width: 100% !important;
+  height: auto !important;
+  margin: 2em auto !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  background: #fff !important;
+}
+
+.article-feishu img.md-image-error {
+  min-height: 120px !important;
+  padding: 1.5rem !important;
+  background: #F3F4F6 !important;
+  border: 1px dashed #D1D5DB !important;
+  object-fit: contain !important;
+}
+
+.article-feishu.rich-text-content h1,
+.article-feishu.rich-text-content h2,
+.article-feishu.rich-text-content h3,
+.article-feishu.rich-text-content h4,
+.article-feishu.rich-text-content h5,
+.article-feishu.rich-text-content h6 {
+  color: inherit;
+}
+
+.article-feishu.rich-text-content blockquote {
+  border-left-width: 4px !important;
+  font-style: normal !important;
+}
+
+/* Legacy generic markdown (non-feishu) */
+.markdown-body:not(.article-feishu) blockquote {
+  border-left: 4px solid #3B82F6 !important;
+  background: rgba(59, 130, 246, 0.05) !important;
+  padding: 1rem 1.5rem !important;
+  margin: 1.5em 0 !important;
+  border-radius: 0 1rem 1rem 0 !important;
+  color: #1F2937 !important;
+}
+
+.markdown-body:not(.article-feishu) blockquote > :first-child {
+  margin-top: 0 !important;
+}
+
+.markdown-body:not(.article-feishu) blockquote > :last-child {
+  margin-bottom: 0 !important;
+}
+
+.markdown-body:not(.article-feishu) h4 {
+  font-size: 1.125rem !important;
+  font-weight: 800 !important;
+}
+
+.markdown-body:not(.article-feishu) h5 {
+  font-size: 1rem !important;
+  font-weight: 800 !important;
+}
+
+.markdown-body:not(.article-feishu) h6 {
+  font-size: 0.9375rem !important;
+  font-weight: 700 !important;
+  color: #374151 !important;
+}
+
+.markdown-body:not(.article-feishu) hr {
+  border: none !important;
+  border-top: 1px solid #E5E7EB !important;
+  margin: 2em 0 !important;
+}
+
+.markdown-body:not(.article-feishu) strong {
+  font-weight: 700 !important;
+  color: #111827 !important;
+}
+
+.markdown-body:not(.article-feishu) a {
+  color: #3B82F6 !important;
+  font-weight: 600 !important;
+  word-break: break-all !important;
+}
+
+.markdown-body:not(.article-feishu) img {
+  display: block !important;
+  margin: 2em auto !important;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08) !important;
+}
+
 .highlights-grid {
   display: grid;
   gap: 1rem;

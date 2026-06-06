@@ -3,11 +3,13 @@ import { useData, useTranslation } from '../context/DataContext';
 import { 
   Plus, Trash2, Edit2, Save, X, LogOut, Layout, 
   BookOpen, User, Upload, Download, Megaphone, Image as ImageIcon, ArrowLeft,
-  ChevronLeft, Eye, BarChart3, TrendingUp, Users, MousePointer2, Clock, Globe
+  ChevronLeft, Eye, BarChart3, TrendingUp, Users, MousePointer2, Clock, Globe, FileText
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Editor } from '@tinymce/tinymce-react';
 import { isAnalyticsSyncConfigured, syncPendingVisits, getRecordVisitorLabel } from '../utils/analyticsApi';
+import { processMarkdownUpload, buildImageMapFromFiles, resolveMarkdownImages } from '../utils/markdown';
+import BlogContent from '../components/BlogContent';
 
 // TinyMCE self-hosted configuration
 import 'tinymce/tinymce';
@@ -140,8 +142,8 @@ const Admin = () => {
   const startAddBlog = () => {
     setEditingPost({ 
       i18n: {
-        en: { title: '', description: '', content: '' },
-        zh: { title: '', description: '', content: '' }
+        en: { title: '', description: '', content: '', contentFormat: 'html' },
+        zh: { title: '', description: '', content: '', contentFormat: 'html' }
       },
       tag: '', 
       date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), 
@@ -1227,12 +1229,16 @@ const BlogList = ({ posts, onStartEdit, onStartAdd, onDelete }) => {
 const BlogEditor = ({ post, onSave, onCancel }) => {
   const [formData, setFormData] = useState({ ...post });
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [uploadNotice, setUploadNotice] = useState('');
+  const mdInputRef = useRef(null);
+  const mdImagesRef = useRef(null);
   const { language } = useData();
   const [activeLang, setActiveLang] = useState(language || 'en');
   const t = useTranslation();
 
   useEffect(() => {
     setFormData({ ...post });
+    setUploadNotice('');
   }, [post]);
 
   useEffect(() => {
@@ -1248,23 +1254,89 @@ const BlogEditor = ({ post, onSave, onCancel }) => {
     setFormData(prev => ({
       ...prev,
       i18n: {
-        en: { title, description, content },
-        zh: { title, description, content }
+        en: { title, description, content, contentFormat: 'html' },
+        zh: { title, description, content, contentFormat: 'html' }
       }
     }));
   }, [formData.i18n, formData.title, formData.description, formData.content]);
 
-  const langData = formData.i18n?.[activeLang] || { title: '', description: '', content: '' };
+  const langData = formData.i18n?.[activeLang] || { title: '', description: '', content: '', contentFormat: 'html' };
+  const isMarkdownMode = langData.contentFormat === 'markdown';
 
   const setLangField = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      i18n: {
-        en: { ...(prev.i18n?.en || {}) },
-        zh: { ...(prev.i18n?.zh || {}) },
-        [activeLang]: { ...(prev.i18n?.[activeLang] || {}), [field]: value }
-      }
-    }));
+    setFormData((prev) => {
+      const nextI18n = {
+        en: { contentFormat: 'html', ...(prev.i18n?.en || {}) },
+        zh: { contentFormat: 'html', ...(prev.i18n?.zh || {}) },
+      };
+      nextI18n[activeLang] = {
+        ...nextI18n[activeLang],
+        [field]: value,
+      };
+      return { ...prev, i18n: nextI18n };
+    });
+  };
+
+  const setEditorMode = (mode) => {
+    setLangField('contentFormat', mode === 'markdown' ? 'markdown' : 'html');
+  };
+
+  const handleMarkdownFile = async (e) => {
+    const mdFile = e.target.files?.[0];
+    e.target.value = '';
+    if (!mdFile) return;
+
+    const imageFiles = mdImagesRef.current?.files ? Array.from(mdImagesRef.current.files) : [];
+    try {
+      const { markdown, meta, warnings } = await processMarkdownUpload(mdFile, imageFiles);
+      applyMarkdownImport(markdown, meta, warnings);
+    } catch {
+      setUploadNotice(t('admin.markdownUploadFailed'));
+    }
+  };
+
+  const applyMarkdownImport = (markdown, meta, warnings = []) => {
+    setFormData((prev) => {
+      const nextI18n = {
+        en: { contentFormat: 'html', ...(prev.i18n?.en || {}) },
+        zh: { contentFormat: 'html', ...(prev.i18n?.zh || {}) },
+      };
+      const current = nextI18n[activeLang] || {};
+      nextI18n[activeLang] = {
+        ...current,
+        content: markdown,
+        contentFormat: 'markdown',
+        title: current.title?.trim() ? current.title : (meta?.title || current.title || ''),
+        description: current.description?.trim()
+          ? current.description
+          : (meta?.description || current.description || ''),
+      };
+      return { ...prev, i18n: nextI18n };
+    });
+
+    const noticeParts = [t('admin.markdownUploadSuccess')];
+    if (meta?.title) noticeParts.push(`${t('admin.markdownTitleDetected')}: ${meta.title}`);
+    if (warnings.length) noticeParts.push(warnings.join(' '));
+    setUploadNotice(noticeParts.join(' · '));
+  };
+
+  const handleEmbedImages = async () => {
+    const imageFiles = mdImagesRef.current?.files ? Array.from(mdImagesRef.current.files) : [];
+    if (!imageFiles.length) {
+      setUploadNotice(t('admin.markdownNoImagesSelected'));
+      return;
+    }
+    try {
+      const { map, ordered } = await buildImageMapFromFiles(imageFiles);
+      const { markdown, warnings } = resolveMarkdownImages(langData.content || '', map, ordered);
+      setLangField('content', markdown);
+      setLangField('contentFormat', 'markdown');
+      const noticeParts = [t('admin.markdownEmbedOk')];
+      if (warnings.length) noticeParts.push(warnings.join(' '));
+      setUploadNotice(noticeParts.join(' · '));
+    } catch {
+      setUploadNotice(t('admin.markdownEmbedFailed'));
+    }
   };
 
   return (
@@ -1292,13 +1364,15 @@ const BlogEditor = ({ post, onSave, onCancel }) => {
                 const now = new Date();
                 const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                 
+                const zh = formData.i18n?.zh || { title: '', description: '', content: '' };
                 const en = formData.i18n?.en || { title: '', description: '', content: '' };
+                const primary = (zh.content || zh.title) ? zh : en;
                 onSave({ 
                   ...formData, 
                   date: dateStr,
-                  title: en.title,
-                  description: en.description,
-                  content: en.content,
+                  title: primary.title || formData.title,
+                  description: primary.description || formData.description,
+                  content: primary.content || formData.content,
                 });
               }}
               className="flex items-center px-8 py-2.5 bg-brand text-white rounded-xl font-bold hover:bg-brand-hover transition-all shadow-md hover:shadow-brand/20"
@@ -1352,10 +1426,98 @@ const BlogEditor = ({ post, onSave, onCancel }) => {
               placeholder="A brief introduction to your post..."
             />
           </div>
+
+          <div className="mt-8 pt-8 border-t border-border-soft">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+              <div>
+                <div className="text-sm font-semibold text-text-main">{t('admin.markdownUpload')}</div>
+                <p className="text-xs text-text-muted mt-1 max-w-xl">{t('admin.markdownUploadHint')}</p>
+              </div>
+              <div className="flex bg-bg-main p-1 rounded-xl border border-border-soft">
+                <button
+                  type="button"
+                  onClick={() => setEditorMode('markdown')}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    isMarkdownMode ? 'bg-white text-brand shadow-sm' : 'text-text-muted hover:text-brand'
+                  }`}
+                >
+                  Markdown
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditorMode('html')}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    !isMarkdownMode ? 'bg-white text-brand shadow-sm' : 'text-text-muted hover:text-brand'
+                  }`}
+                >
+                  Rich Text
+                </button>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <input
+                ref={mdInputRef}
+                type="file"
+                accept=".md,text/markdown,text/plain"
+                onChange={handleMarkdownFile}
+                className="hidden"
+              />
+              <input
+                ref={mdImagesRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => mdInputRef.current?.click()}
+                className="inline-flex items-center px-4 py-2 border border-brand text-brand rounded-xl text-sm font-semibold hover:bg-brand/5 transition-all"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                {t('admin.markdownChooseFile')}
+              </button>
+              <button
+                type="button"
+                onClick={() => mdImagesRef.current?.click()}
+                className="inline-flex items-center px-4 py-2 border border-border-soft text-text-main rounded-xl text-sm font-semibold hover:bg-bg-main transition-all"
+              >
+                <ImageIcon className="w-4 h-4 mr-2" />
+                {t('admin.markdownChooseImages')}
+              </button>
+              <button
+                type="button"
+                onClick={handleEmbedImages}
+                className="inline-flex items-center px-4 py-2 border border-brand/30 text-brand rounded-xl text-sm font-semibold hover:bg-brand/5 transition-all"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                {t('admin.markdownEmbedImages')}
+              </button>
+            </div>
+            {uploadNotice && (
+              <p className="mt-3 text-xs font-medium text-brand bg-brand/5 border border-brand/10 rounded-xl px-4 py-3">
+                {uploadNotice}
+              </p>
+            )}
+          </div>
         </div>
 
-        {/* 3. TinyMCE Editor - Powerful alternative to Quill */}
+        {/* 3. Content editor */}
         <div className="bg-white rounded-[2rem] border border-border-soft shadow-sm overflow-hidden">
+          {isMarkdownMode ? (
+            <div className="p-6">
+              <label className="block text-xs font-bold uppercase tracking-widest text-text-muted mb-3">
+                Markdown Source
+              </label>
+              <textarea
+                value={langData.content}
+                onChange={(e) => setLangField('content', e.target.value)}
+                className="w-full min-h-[600px] px-5 py-4 bg-bg-main/30 border border-border-soft rounded-2xl focus:ring-2 focus:ring-brand/10 focus:border-brand outline-none font-mono text-sm leading-relaxed text-text-main resize-y"
+                placeholder="# Title&#10;&#10;Write or upload markdown..."
+              />
+            </div>
+          ) : (
           <Editor
             init={{
               height: 600,
@@ -1418,6 +1580,7 @@ const BlogEditor = ({ post, onSave, onCancel }) => {
             value={langData.content}
             onEditorChange={(content) => setLangField('content', content)}
           />
+          )}
         </div>
       </div>
 
@@ -1443,9 +1606,10 @@ const BlogEditor = ({ post, onSave, onCancel }) => {
                 </h1>
 
                 <div className="rich-text-preview prose prose-slate max-w-none prose-headings:text-text-main prose-p:text-text-main/90 prose-img:rounded-3xl">
-                  <div 
-                    className="text-text-main/90 text-lg leading-relaxed rich-text-content"
-                    dangerouslySetInnerHTML={{ __html: langData.content }}
+                  <BlogContent
+                    content={langData.content}
+                    contentFormat={langData.contentFormat}
+                    className="text-text-main/90 text-lg leading-relaxed"
                   />
                 </div>
               </div>

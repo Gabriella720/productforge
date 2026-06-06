@@ -1,35 +1,46 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
-  ArrowLeft, Calendar, Clock, Eye, Heart, Share2, 
+  ArrowLeft, Calendar, Eye, Heart, Share2, 
   MessageSquare, Send, Smile, Image as ImageIcon, X 
 } from 'lucide-react';
 import { useData, useTranslation } from '../context/DataContext';
 import { useBlogLocale } from '../hooks/useBlogLocale';
 import { getPrimarySourceLocale } from '../utils/blogLocale';
+import BlogContent from '../components/BlogContent';
+import BlogTableOfContents from '../components/BlogTableOfContents';
 
 const BlogDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const t = useTranslation();
-  const { blogPosts, incrementView, incrementLike, incrementShare, addComment } = useData();
+  const { blogPosts, incrementView, incrementLike, incrementShare, addComment, isAdmin } = useData();
   const post = blogPosts.find(p => p.id === parseInt(id));
   const {
     title: postTitle,
     content: postContent,
+    contentFormat: postContentFormat,
     loading: localeLoading,
     isAutoTranslated,
     error: localeError,
   } = useBlogLocale(post);
 
-  const fallbackContent = post ? getPrimarySourceLocale(post).content : '';
+  const fallbackSource = post ? getPrimarySourceLocale(post) : null;
+  const fallbackContent = fallbackSource?.content || '';
+  const fallbackFormat = fallbackSource?.contentFormat || 'html';
   const displayContent = (postContent || '').trim() || fallbackContent;
+  const displayFormat = (postContent || '').trim() ? postContentFormat : fallbackFormat;
 
   const [commentText, setCommentText] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
   const [commentImage, setCommentImage] = useState(null);
+  const [tocItems, setTocItems] = useState([]);
   const fileInputRef = useRef(null);
   const incrementedRef = useRef(false);
+
+  const handleTocChange = useCallback((items) => {
+    setTocItems(items || []);
+  }, []);
 
   useEffect(() => {
     if (post && !incrementedRef.current) {
@@ -83,10 +94,16 @@ const BlogDetail = () => {
   };
 
   const emojis = ['😊', '😂', '😍', '🙌', '🔥', '👏', '🤔', '👍', '❤️', '✨'];
+  const hasToc = tocItems.length > 0;
+  // Left: logo gutter (4rem). Gap 3rem + TOC 15rem + right anchor 4.75rem (lang line, shifted 2rem right).
+  const mainColumnClass = hasToc
+    ? isAdmin
+      ? 'lg:ml-16 lg:w-[calc(100%-26.75rem)] lg:max-w-[calc(100%-26.75rem)]'
+      : 'lg:ml-16 lg:w-[calc(100%-16rem)] lg:max-w-[calc(100%-16rem)]'
+    : '';
 
   return (
-    <div className="max-w-4xl mx-auto px-4 pt-16 pb-24">
-      {/* Navigation */}
+    <div className="max-w-6xl mx-auto px-4 pt-16 pb-24">
       <Link 
         to="/blog" 
         className="inline-flex items-center text-brand hover:text-brand-hover transition-all mb-12 group font-bold tracking-tight"
@@ -95,6 +112,8 @@ const BlogDetail = () => {
         {t('blogDetail.back')}
       </Link>
 
+      <div className={hasToc ? 'relative lg:w-full' : 'max-w-3xl'}>
+        <div className={mainColumnClass}>
       {/* Header */}
       <div className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
         <h1 className="text-4xl md:text-6xl font-black text-text-main mb-8 leading-[1.1] tracking-tight">
@@ -121,23 +140,36 @@ const BlogDetail = () => {
         </div>
       </div>
 
+      {hasToc && (
+        <div className="mb-10 lg:hidden bg-white border border-border-soft rounded-2xl p-5">
+          <BlogTableOfContents items={tocItems} title={t('blogDetail.toc')} />
+        </div>
+      )}
+
       {/* Article Content */}
-      <article className="prose prose-slate md:prose-lg max-w-none mb-24 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300
+      <article className={`mb-24 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300 ${
+        displayFormat === 'markdown'
+          ? 'blog-article-shell'
+          : `prose prose-slate md:prose-lg max-w-none
         prose-headings:text-text-main prose-headings:font-black prose-headings:tracking-tight
         prose-p:text-text-main/80 prose-p:leading-relaxed prose-p:font-medium
         prose-img:rounded-[2rem] prose-img:shadow-xl
         prose-blockquote:border-l-4 prose-blockquote:border-brand prose-blockquote:bg-brand/5 prose-blockquote:py-2 prose-blockquote:px-6 prose-blockquote:rounded-r-2xl prose-blockquote:font-bold prose-blockquote:text-brand
         prose-strong:text-text-main prose-strong:font-bold
         prose-a:text-brand prose-a:font-bold prose-a:no-underline hover:prose-a:underline
-        rich-text-content
-      ">
+        rich-text-content`
+      }`}>
         {localeLoading ? (
           <div className="py-16 text-center">
             <p className="text-brand font-bold text-sm uppercase tracking-widest mb-2">{t('blog.translating')}</p>
             <p className="text-text-muted text-sm font-medium">{t('blog.translatingHint')}</p>
           </div>
         ) : (
-          <div dangerouslySetInnerHTML={{ __html: displayContent }} />
+          <BlogContent
+            content={displayContent}
+            contentFormat={displayFormat}
+            onTocChange={handleTocChange}
+          />
         )}
       </article>
 
@@ -285,6 +317,22 @@ const BlogDetail = () => {
           )}
         </div>
       </section>
+        </div>
+
+        {hasToc && (
+          <aside
+            className={`hidden lg:block lg:absolute lg:top-0 lg:w-[15rem] z-10 ${
+              isAdmin
+                ? 'lg:left-[calc(100%-4.75rem)] lg:-translate-x-full'
+                : 'lg:right-0'
+            }`}
+          >
+            <div className="sticky top-24 bg-white border border-border-soft rounded-2xl p-5 shadow-sm">
+              <BlogTableOfContents items={tocItems} title={t('blogDetail.toc')} />
+            </div>
+          </aside>
+        )}
+      </div>
     </div>
   );
 };

@@ -47,6 +47,7 @@ export const translations = {
       noComments: "No comments yet. Be the first to share your thoughts!",
       scanWeChat: "Scan WeChat QR Code",
       weChatConnect: "Add me on WeChat to connect",
+      toc: "On this page",
     },
     about: {
       background: "Background",
@@ -117,6 +118,17 @@ export const translations = {
       exitEditor: "Exit Editor",
       preview: "Preview",
       publish: "Publish",
+      markdownUpload: "Import Markdown",
+      markdownUploadHint: "Upload a .md file to preserve headings, blockquotes, lists, and images. Select image files before importing: matched by filename/alt, or by order in the document (for Feishu links like ![Image](...)).",
+      markdownChooseFile: "Choose .md File",
+      markdownChooseImages: "Choose Images (optional)",
+      markdownUploadSuccess: "Markdown imported.",
+      markdownUploadFailed: "Failed to read markdown file.",
+      markdownTitleDetected: "Title detected",
+      markdownEmbedImages: "Embed Images",
+      markdownEmbedOk: "Images embedded into markdown.",
+      markdownEmbedFailed: "Failed to embed images.",
+      markdownNoImagesSelected: "Select image files first.",
     }
   },
   zh: {
@@ -167,6 +179,7 @@ export const translations = {
       noComments: "暂无评论。来分享你的想法吧！",
       scanWeChat: "扫码添加微信",
       weChatConnect: "扫码与我建立联系",
+      toc: "文章目录",
     },
     about: {
       background: "背景",
@@ -237,6 +250,17 @@ export const translations = {
       exitEditor: "退出编辑器",
       preview: "预览",
       publish: "发布",
+      markdownUpload: "导入 Markdown",
+      markdownUploadHint: "上传 .md 可保留标题、引用、列表与图片。导入前先选择配图：按文件名/alt 匹配，或按文中出现顺序匹配（适用于飞书 ![Image](内网链接) 导出）。",
+      markdownChooseFile: "选择 .md 文件",
+      markdownChooseImages: "选择配图（可选）",
+      markdownUploadSuccess: "Markdown 已导入。",
+      markdownUploadFailed: "读取 Markdown 文件失败。",
+      markdownTitleDetected: "已识别标题",
+      markdownEmbedImages: "嵌入配图",
+      markdownEmbedOk: "配图已写入 Markdown。",
+      markdownEmbedFailed: "嵌入配图失败。",
+      markdownNoImagesSelected: "请先选择图片文件。",
     }
   }
 };

@@ -89,6 +89,16 @@ export const useTranslation = () => {
 
 const initialProjects = Array.isArray(siteData?.projects) ? siteData.projects : [];
 const initialBlogPosts = Array.isArray(siteData?.blogPosts) ? siteData.blogPosts : [];
+const BLOG_POSTS_CACHE_KEY = 'blogPostsPublishedCache';
+
+const mergeBlogPostsById = (basePosts, cachedPosts) => {
+  const map = new Map((basePosts || []).map((p) => [p.id, p]));
+  (cachedPosts || []).forEach((p) => {
+    if (p && p.id != null) map.set(p.id, p);
+  });
+  return Array.from(map.values()).sort((a, b) => (b.id || 0) - (a.id || 0));
+};
+
 const initialAboutInfo = siteData?.aboutInfo && typeof siteData.aboutInfo === 'object' ? siteData.aboutInfo : {
   name: '',
   role: '',
@@ -138,12 +148,14 @@ export const DataProvider = ({ children }) => {
       title: (i18nEn.title ?? '').toString(),
       description: (i18nEn.description ?? '').toString(),
       content: (i18nEn.content ?? '').toString(),
+      contentFormat: i18nEn.contentFormat === 'markdown' ? 'markdown' : 'html',
     };
 
     let zh = {
       title: (i18nZh.title ?? '').toString(),
       description: (i18nZh.description ?? '').toString(),
       content: (i18nZh.content ?? '').toString(),
+      contentFormat: i18nZh.contentFormat === 'markdown' ? 'markdown' : 'html',
     };
 
     if (!en.title && !en.content) {
@@ -151,6 +163,7 @@ export const DataProvider = ({ children }) => {
         title: fallbackTitle,
         description: fallbackDesc,
         content: fallbackContent,
+        contentFormat: i18nEn.contentFormat === 'markdown' ? 'markdown' : 'html',
       };
     }
 
@@ -168,6 +181,7 @@ export const DataProvider = ({ children }) => {
         title: fallbackTitle,
         description: fallbackDesc,
         content: fallbackContent,
+        contentFormat: i18nZh.contentFormat === 'markdown' ? 'markdown' : en.contentFormat,
       };
     }
 
@@ -215,7 +229,19 @@ export const DataProvider = ({ children }) => {
 
   const [projects, setProjects] = useState(() => initialProjects.map(normalizeProject));
 
-  const [blogPosts, setBlogPosts] = useState(() => initialBlogPosts.map(normalizeBlogPost));
+  const [blogPosts, setBlogPosts] = useState(() => {
+    const base = initialBlogPosts.map(normalizeBlogPost);
+    if (typeof window === 'undefined') return base;
+    try {
+      const raw = localStorage.getItem(BLOG_POSTS_CACHE_KEY);
+      if (!raw) return base;
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return base;
+      return mergeBlogPostsById(base, parsed.map(normalizeBlogPost));
+    } catch {
+      return base;
+    }
+  });
 
   const [aboutInfo, setAboutInfo] = useState(() => {
     const base = draft?.aboutInfo && typeof draft.aboutInfo === 'object' ? draft.aboutInfo : initialAboutInfo;
@@ -277,6 +303,14 @@ export const DataProvider = ({ children }) => {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(BLOG_POSTS_CACHE_KEY, JSON.stringify(blogPosts));
+    } catch {
+      // ignore quota errors; admin draft may still hold data while editing
+    }
+  }, [blogPosts]);
 
   useEffect(() => {
     localStorage.setItem('language', language);
