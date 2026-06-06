@@ -19,6 +19,7 @@ const normalizeExternalUrl = (raw) => {
 
 const ProjectCard = ({ project, language, trackEvent, t }) => {
   const { title, description, tags } = getProjectLocaleBlock(project, language);
+  const demoHref = normalizeExternalUrl(project.demoUrl);
 
   const trackProject = (action) => {
     trackEvent({
@@ -34,12 +35,29 @@ const ProjectCard = ({ project, language, trackEvent, t }) => {
   return (
     <div className="group border border-border-soft rounded-[2.5rem] overflow-hidden bg-white hover:shadow-[0_30px_60px_rgba(59,130,246,0.1)] transition-all duration-500 hover:-translate-y-2">
       <div className="relative overflow-hidden aspect-video">
-        <img
-          src={project.image}
-          alt={title}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-        />
-        <div className="absolute inset-0 bg-brand/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        {demoHref ? (
+          <a
+            href={demoHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => trackProject('demo')}
+            className="block w-full h-full"
+            aria-label={`${title} — ${t('projects.demo')}`}
+          >
+            <img
+              src={project.image}
+              alt={title}
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+            />
+          </a>
+        ) : (
+          <img
+            src={project.image}
+            alt={title}
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          />
+        )}
+        <div className="absolute inset-0 bg-brand/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
       </div>
 
       <div className="p-10">
@@ -54,11 +72,20 @@ const ProjectCard = ({ project, language, trackEvent, t }) => {
           ))}
         </div>
 
-        <h2
-          className="text-3xl font-black text-text-main mb-4 group-hover:text-brand transition-colors duration-300 tracking-tight cursor-pointer"
-          onClick={() => trackProject()}
-        >
-          {title}
+        <h2 className="text-3xl font-black mb-4 tracking-tight">
+          {demoHref ? (
+            <a
+              href={demoHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackProject('demo')}
+              className="text-text-main group-hover:text-brand transition-colors duration-300 cursor-pointer"
+            >
+              {title}
+            </a>
+          ) : (
+            <span className="text-text-main">{title}</span>
+          )}
         </h2>
 
         <p className="text-text-muted mb-10 leading-relaxed font-medium text-lg group-hover:text-text-main/80 transition-colors duration-300">

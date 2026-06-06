@@ -96,10 +96,14 @@ const BlogDetail = () => {
   const emojis = ['😊', '😂', '😍', '🙌', '🔥', '👏', '🤔', '👍', '❤️', '✨'];
   const hasToc = tocItems.length > 0;
   // Left: logo gutter (4rem). Gap 3rem + TOC 15rem + right anchor 4.75rem (lang line, shifted 2rem right).
+  const tocAsideClass = isAdmin
+    ? 'hidden lg:block lg:sticky lg:top-24 lg:z-10 lg:w-[15rem] lg:shrink-0 lg:ml-12 lg:self-start'
+    : 'hidden lg:block lg:sticky lg:top-24 lg:z-10 lg:w-[15rem] lg:shrink-0 lg:ml-auto lg:self-start';
+
   const mainColumnClass = hasToc
     ? isAdmin
-      ? 'lg:ml-16 lg:w-[calc(100%-26.75rem)] lg:max-w-[calc(100%-26.75rem)]'
-      : 'lg:ml-16 lg:w-[calc(100%-16rem)] lg:max-w-[calc(100%-16rem)]'
+      ? 'lg:ml-16 lg:w-[calc(100%-26.75rem)] lg:max-w-[calc(100%-26.75rem)] lg:flex-none'
+      : 'lg:ml-16 lg:w-[calc(100%-16rem)] lg:max-w-[calc(100%-16rem)] lg:flex-none'
     : '';
 
   return (
@@ -112,7 +116,7 @@ const BlogDetail = () => {
         {t('blogDetail.back')}
       </Link>
 
-      <div className={hasToc ? 'relative lg:w-full' : 'max-w-3xl'}>
+      <div className={hasToc ? 'lg:flex lg:items-start lg:w-full' : 'max-w-3xl'}>
         <div className={mainColumnClass}>
       {/* Header */}
       <div className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -321,15 +325,9 @@ const BlogDetail = () => {
 
         {hasToc && (
           <aside
-            className={`hidden lg:block lg:absolute lg:top-0 lg:w-[15rem] z-10 ${
-              isAdmin
-                ? 'lg:left-[calc(100%-4.75rem)] lg:-translate-x-full'
-                : 'lg:right-0'
-            }`}
+            className={`${tocAsideClass} bg-white border border-border-soft rounded-2xl p-5 shadow-sm max-h-[calc(100vh-6rem)] overflow-y-auto`}
           >
-            <div className="sticky top-24 bg-white border border-border-soft rounded-2xl p-5 shadow-sm">
-              <BlogTableOfContents items={tocItems} title={t('blogDetail.toc')} />
-            </div>
+            <BlogTableOfContents items={tocItems} title={t('blogDetail.toc')} />
           </aside>
         )}
       </div>
