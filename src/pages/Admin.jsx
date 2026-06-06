@@ -1911,6 +1911,10 @@ const NoticeManager = ({ notice, onUpdate }) => {
   const [formData, setFormData] = useState({ ...notice });
   const t = useTranslation();
 
+  useEffect(() => {
+    setFormData({ ...notice });
+  }, [notice]);
+
   const handleSave = () => {
     onUpdate({
       enabled: !!formData.enabled,

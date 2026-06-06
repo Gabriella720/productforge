@@ -92,6 +92,19 @@ export const useTranslation = () => {
 const initialProjects = Array.isArray(siteData?.projects) ? siteData.projects : [];
 const initialBlogPosts = Array.isArray(siteData?.blogPosts) ? siteData.blogPosts : [];
 const BLOG_POSTS_CACHE_KEY = 'blogPostsPublishedCache';
+const SITE_NOTICE_CACHE_KEY = 'siteNoticePublishedCache';
+
+const readSiteNoticeCache = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(SITE_NOTICE_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+};
 
 const mergeBlogPostsById = (basePosts, cachedPosts) => {
   const map = new Map((basePosts || []).map((p) => [p.id, p]));
@@ -255,6 +268,8 @@ export const DataProvider = ({ children }) => {
   });
 
   const [siteNotice, setSiteNotice] = useState(() => {
+    const cached = readSiteNoticeCache();
+    if (cached) return normalizeSiteNotice(cached);
     const base = draft?.siteNotice && typeof draft.siteNotice === 'object' ? draft.siteNotice : initialSiteNotice;
     return normalizeSiteNotice(base);
   });
@@ -319,6 +334,14 @@ export const DataProvider = ({ children }) => {
   }, [blogPosts]);
 
   useEffect(() => {
+    try {
+      localStorage.setItem(SITE_NOTICE_CACHE_KEY, JSON.stringify(siteNotice));
+    } catch {
+      // ignore quota errors; admin draft may still hold data while editing
+    }
+  }, [siteNotice]);
+
+  useEffect(() => {
     localStorage.setItem('language', language);
   }, [language]);
 
@@ -336,7 +359,6 @@ export const DataProvider = ({ children }) => {
     if (Array.isArray(parsed.projects)) setProjects(ensureOrderFields(parsed.projects.map(normalizeProject)));
     if (Array.isArray(parsed.blogPosts)) setBlogPosts(ensureOrderFields(parsed.blogPosts.map(normalizeBlogPost)));
     if (parsed.aboutInfo && typeof parsed.aboutInfo === 'object') setAboutInfo(normalizeAboutInfo(parsed.aboutInfo));
-    if (parsed.siteNotice && typeof parsed.siteNotice === 'object') setSiteNotice(normalizeSiteNotice(parsed.siteNotice));
     if (typeof parsed.language === 'string') setLanguage(parsed.language);
   }, [isAdmin]);
   const login = (password) => {
@@ -356,7 +378,17 @@ export const DataProvider = ({ children }) => {
   };
 
   const updateSiteNotice = (notice) => {
-    setSiteNotice(normalizeSiteNotice({ ...notice, id: Date.now() }));
+    setSiteNotice((prev) => {
+      const merged = { ...prev, ...notice };
+      const contentChanged = (
+        (notice.zh !== undefined && notice.zh !== prev.zh)
+        || (notice.en !== undefined && notice.en !== prev.en)
+      );
+      return normalizeSiteNotice({
+        ...merged,
+        id: contentChanged ? Date.now() : merged.id,
+      });
+    });
   };
 
   const addProject = (project) => {
@@ -512,7 +544,7 @@ export const DataProvider = ({ children }) => {
         setBlogPosts(ensureOrderFields(arr.map(normalizeBlogPost)));
       }
       if (data.aboutInfo) setAboutInfo(data.aboutInfo);
-      if (data.siteNotice) setSiteNotice(data.siteNotice);
+      if (data.siteNotice) setSiteNotice(normalizeSiteNotice(data.siteNotice));
       if (data.language) setLanguage(data.language);
       return true;
     } catch {
