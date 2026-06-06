@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, ArrowRight, Eye, Heart, Share2, Search, X, BookOpen } from 'lucide-react';
+import { Calendar, ArrowRight, Eye, Heart, Share2, Search, X } from 'lucide-react';
 import { useData, useTranslation } from '../context/DataContext';
 import { Link } from 'react-router-dom';
 import { useBlogLocale } from '../hooks/useBlogLocale';
@@ -17,9 +17,9 @@ const BlogPostCard = ({ post, language, t }) => {
   return (
     <Link
       to={`/blog/${post.id}`}
-      className="flex flex-col border border-border-soft rounded-[2.5rem] overflow-hidden bg-white hover:shadow-[0_20px_50px_rgba(59,130,246,0.1)] transition-all duration-500 group hover:-translate-y-2"
+      className="flex flex-col border border-border-soft rounded-2xl overflow-hidden bg-white hover:shadow-[0_20px_40px_rgba(59,130,246,0.1)] transition-all duration-500 group hover:-translate-y-1"
     >
-      <div className="relative overflow-hidden aspect-[16/10]">
+      <div className="relative overflow-hidden aspect-[2/1] shrink-0">
         <div className="absolute inset-0 bg-bg-main" />
         <img
           src={post.image}
@@ -29,38 +29,38 @@ const BlogPostCard = ({ post, language, t }) => {
         <div className="absolute inset-0 bg-brand/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       </div>
 
-      <div className="p-8 flex flex-col flex-grow">
-        <div className="flex items-center space-x-4 text-[11px] font-bold text-text-muted/70 uppercase tracking-widest mb-4">
+      <div className="p-5 flex flex-col flex-grow">
+        <div className="flex items-center space-x-4 text-[10px] font-bold text-text-muted/70 uppercase tracking-widest mb-2">
           <span className="flex items-center">
-            <Calendar className="w-3.5 h-3.5 mr-1.5" />
+            <Calendar className="w-3 h-3 mr-1" />
             {post.date}
           </span>
         </div>
 
-        <h3 className="text-2xl font-bold text-text-main mb-4 group-hover:text-brand transition-colors duration-300 leading-tight line-clamp-2">
+        <h3 className="text-lg font-bold text-text-main mb-2 group-hover:text-brand transition-colors duration-300 leading-snug line-clamp-2">
           {displayTitle}
         </h3>
 
-        <p className="text-text-muted mb-8 leading-relaxed font-medium line-clamp-3 group-hover:text-text-main/80 transition-colors duration-300">
+        <p className="text-sm text-text-muted mb-4 leading-relaxed font-medium line-clamp-2 group-hover:text-text-main/80 transition-colors duration-300">
           {displayDescription}
         </p>
 
-        <div className="mt-auto pt-6 border-t border-border-soft flex items-center justify-between">
-          <span className="text-sm font-bold text-brand group-hover:text-brand-hover transition-colors duration-300 flex items-center">
+        <div className="mt-auto pt-4 border-t border-border-soft flex items-center justify-between">
+          <span className="text-xs font-bold text-brand group-hover:text-brand-hover transition-colors duration-300 flex items-center">
             {t('blog.readMore') || 'Read More'}
-            <ArrowRight className="ml-2 w-4 h-4 transition-transform duration-300 group-hover:translate-x-2" />
+            <ArrowRight className="ml-1.5 w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-2" />
           </span>
-          <div className="flex items-center space-x-4 text-text-muted/40 group-hover:text-brand/50 transition-colors duration-300">
+          <div className="flex items-center space-x-3 text-text-muted/40 group-hover:text-brand/50 transition-colors duration-300">
             <div className="flex items-center">
-              <Eye className="w-4 h-4 mr-1.5" />
+              <Eye className="w-3.5 h-3.5 mr-1" />
               <span className="text-[10px] font-bold">{post.views?.toLocaleString() || 0}</span>
             </div>
             <div className="flex items-center">
-              <Heart className="w-4 h-4 mr-1" />
+              <Heart className="w-3.5 h-3.5 mr-0.5" />
               <span className="text-[10px] font-bold">{post.likes || 0}</span>
             </div>
             <div className="flex items-center">
-              <Share2 className="w-4 h-4 mr-1" />
+              <Share2 className="w-3.5 h-3.5 mr-0.5" />
               <span className="text-[10px] font-bold">{post.shares || 0}</span>
             </div>
           </div>
@@ -98,18 +98,13 @@ const Blog = () => {
   });
 
   return (
-    <div className="max-w-6xl mx-auto px-4 pt-16 pb-24">
-      <div className="mb-16">
-        <div className="inline-flex items-center px-4 py-2 bg-brand/5 border border-brand/10 rounded-full text-brand text-xs font-bold tracking-widest uppercase mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <BookOpen className="w-3.5 h-3.5 mr-2" />
-          {t('blog.badge') || 'Insights & Thoughts'}
-        </div>
-        
-        <h1 className="text-5xl md:text-6xl font-black text-text-main mb-6 tracking-tight animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100">
+    <div className="max-w-6xl mx-auto px-4 pt-8 pb-24">
+      <div className="mb-8">
+        <h1 className="text-3xl md:text-4xl font-black text-text-main mb-3 tracking-tight animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100">
           {t('blog.title')}
         </h1>
         
-        <p className="text-xl text-text-muted max-w-2xl mb-12 leading-relaxed font-medium animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
+        <p className="text-base text-text-muted max-w-2xl mb-6 leading-relaxed font-medium animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
           {t('blog.subtitle')}
         </p>
 
@@ -164,7 +159,7 @@ const Blog = () => {
       </div>
 
       {sortedPosts.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-400">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-400">
           {sortedPosts.map((post) => (
             <BlogPostCard key={post.id} post={post} language={language} t={t} />
           ))}
