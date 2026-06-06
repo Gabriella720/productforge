@@ -10,6 +10,8 @@ import { Editor } from '@tinymce/tinymce-react';
 import { isAnalyticsSyncConfigured, syncPendingVisits, getRecordVisitorLabel } from '../utils/analyticsApi';
 import { processMarkdownUpload, buildImageMapFromFiles, resolveMarkdownImages } from '../utils/markdown';
 import BlogContent from '../components/BlogContent';
+import SortableList from '../components/SortableList';
+import { sortByOrder } from '../utils/sortOrder';
 
 // TinyMCE self-hosted configuration
 import 'tinymce/tinymce';
@@ -97,8 +99,8 @@ const publishJsonToRepo = async ({ token, owner, repo, branch, path, content }) 
 
 const Admin = () => {
   const { 
-    projects, addProject, updateProject, deleteProject,
-    blogPosts, addBlogPost, updateBlogPost, deleteBlogPost,
+    projects, addProject, updateProject, deleteProject, reorderProjects,
+    blogPosts, addBlogPost, updateBlogPost, deleteBlogPost, reorderBlogPosts,
     aboutInfo, updateAboutInfo,
     siteNotice, updateSiteNotice,
     analytics,
@@ -285,7 +287,8 @@ const Admin = () => {
                 projects={projects} 
                 onAdd={addProject} 
                 onUpdate={updateProject} 
-                onDelete={deleteProject} 
+                onDelete={deleteProject}
+                onReorder={reorderProjects}
               />
             )}
             {activeTab === 'blog' && (
@@ -293,7 +296,8 @@ const Admin = () => {
                 posts={blogPosts} 
                 onStartEdit={startEditBlog}
                 onStartAdd={startAddBlog}
-                onDelete={deleteBlogPost} 
+                onDelete={deleteBlogPost}
+                onReorder={reorderBlogPosts}
               />
             )}
             {activeTab === 'about' && (
@@ -1037,7 +1041,7 @@ const ImageUpload = ({ label, value, onChange }) => {
   );
 };
 
-const ProjectManager = ({ projects, onAdd, onUpdate, onDelete }) => {
+const ProjectManager = ({ projects, onAdd, onUpdate, onDelete, onReorder }) => {
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({});
   const [isAdding, setIsAdding] = useState(false);
@@ -1085,10 +1089,16 @@ const ProjectManager = ({ projects, onAdd, onUpdate, onDelete }) => {
     }
   };
 
+  const sortedProjects = useMemo(() => sortByOrder(projects), [projects]);
+  const isReorderingDisabled = editingId !== null || isAdding;
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center px-2">
-        <h2 className="text-xl font-bold text-text-main">{t('admin.manageProjects')}</h2>
+        <div>
+          <h2 className="text-xl font-bold text-text-main">{t('admin.manageProjects')}</h2>
+          <p className="text-sm text-text-muted mt-1">{t('admin.dragToReorder')}</p>
+        </div>
         <button 
           onClick={startAdd}
           className="flex items-center px-6 py-2.5 bg-brand text-white rounded-xl text-sm font-semibold hover:bg-brand-hover transition-all shadow-md hover:shadow-brand/20 active:scale-95"
@@ -1098,9 +1108,14 @@ const ProjectManager = ({ projects, onAdd, onUpdate, onDelete }) => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {projects.map((project) => (
-          <div key={project.id} className="border border-border-soft rounded-2xl p-6 hover:border-brand/30 transition-colors bg-bg-main/50">
+      <SortableList
+        items={sortedProjects}
+        onReorder={onReorder}
+        disabled={isReorderingDisabled}
+        className="space-y-4"
+        itemClassName="border border-border-soft rounded-2xl p-6 hover:border-brand/30 transition-colors bg-bg-main/50"
+        renderItem={(project) => (
+          <>
             {editingId === project.id ? (
               <div className="space-y-4">
                 <Input label="Title" value={formData.title} onChange={v => setFormData({...formData, title: v})} />
@@ -1145,9 +1160,10 @@ const ProjectManager = ({ projects, onAdd, onUpdate, onDelete }) => {
                 <p className="text-text-muted text-sm line-clamp-2 mb-4">{project.description}</p>
               </div>
             )}
-          </div>
-        ))}
-        
+          </>
+        )}
+      />
+
         {isAdding && (
           <div className="border-2 border-dashed border-brand/30 rounded-2xl p-6 bg-brand/5">
             <div className="space-y-4">
@@ -1173,19 +1189,23 @@ const ProjectManager = ({ projects, onAdd, onUpdate, onDelete }) => {
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 };
 
-const BlogList = ({ posts, onStartEdit, onStartAdd, onDelete }) => {
+const BlogList = ({ posts, onStartEdit, onStartAdd, onDelete, onReorder }) => {
   const t = useTranslation();
   const { language } = useData();
   const getTitle = (post) => post?.i18n?.[language]?.title || post?.i18n?.en?.title || post?.title || '';
+  const sortedPosts = useMemo(() => sortByOrder(posts), [posts]);
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center px-2">
-        <h2 className="text-xl font-bold text-text-main">{t('admin.manageBlog')}</h2>
+        <div>
+          <h2 className="text-xl font-bold text-text-main">{t('admin.manageBlog')}</h2>
+          <p className="text-sm text-text-muted mt-1">{t('admin.dragToReorder')}</p>
+        </div>
         <button 
           onClick={onStartAdd}
           className="flex items-center px-6 py-2.5 bg-brand text-white rounded-xl text-sm font-semibold hover:bg-brand-hover transition-all shadow-md hover:shadow-brand/20 active:scale-95"
@@ -1195,17 +1215,21 @@ const BlogList = ({ posts, onStartEdit, onStartAdd, onDelete }) => {
         </button>
       </div>
 
-      <div className="space-y-4">
-        {posts.map((post) => (
-          <div key={post.id} className="flex items-center justify-between p-5 bg-bg-main/50 border border-border-soft rounded-2xl hover:border-brand/30 transition-all group">
-            <div className="flex items-center space-x-5">
-              <img src={post.image} alt="" className="w-20 h-20 rounded-xl object-cover shadow-sm ring-1 ring-border-soft group-hover:ring-brand/20 transition-all" />
-              <div>
-                <h3 className="font-bold text-text-main text-lg group-hover:text-brand transition-colors">{getTitle(post)}</h3>
+      <SortableList
+        items={sortedPosts}
+        onReorder={onReorder}
+        className="space-y-4"
+        itemClassName="p-5 bg-bg-main/50 border border-border-soft rounded-2xl hover:border-brand/30 transition-all group"
+        renderItem={(post) => (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-5 min-w-0">
+              <img src={post.image} alt="" className="w-20 h-20 rounded-xl object-cover shadow-sm ring-1 ring-border-soft group-hover:ring-brand/20 transition-all shrink-0" />
+              <div className="min-w-0">
+                <h3 className="font-bold text-text-main text-lg group-hover:text-brand transition-colors truncate">{getTitle(post)}</h3>
                 <p className="text-text-muted text-sm font-medium mt-1">{post.date}</p>
               </div>
             </div>
-            <div className="flex space-x-2">
+            <div className="flex space-x-2 shrink-0">
               <button 
                 onClick={() => onStartEdit(post)}
                 className="p-2.5 text-text-muted hover:text-brand hover:bg-brand/5 rounded-xl transition-all"
@@ -1220,8 +1244,8 @@ const BlogList = ({ posts, onStartEdit, onStartAdd, onDelete }) => {
               </button>
             </div>
           </div>
-        ))}
-      </div>
+        )}
+      />
     </div>
   );
 };

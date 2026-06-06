@@ -16,6 +16,7 @@ import {
 } from '../utils/analyticsApi';
 import { resolveAnalyticsPath } from '../utils/analyticsPaths';
 import { detectContentLanguage } from '../utils/blogLocale';
+import { ensureOrderFields, reorderArray, sortByOrder, preserveOrder } from '../utils/sortOrder';
 
 const normalizeProjectTags = (tags) =>
   (Array.isArray(tags) ? tags : []).map((t) => String(t).trim()).filter(Boolean);
@@ -58,6 +59,7 @@ const normalizeProject = (project) => {
     title: en.title,
     description: en.description,
     tags: en.tags,
+    order: preserveOrder(base),
   };
 };
 
@@ -96,7 +98,7 @@ const mergeBlogPostsById = (basePosts, cachedPosts) => {
   (cachedPosts || []).forEach((p) => {
     if (p && p.id != null) map.set(p.id, p);
   });
-  return Array.from(map.values()).sort((a, b) => (b.id || 0) - (a.id || 0));
+  return ensureOrderFields(Array.from(map.values()));
 };
 
 const initialAboutInfo = siteData?.aboutInfo && typeof siteData.aboutInfo === 'object' ? siteData.aboutInfo : {
@@ -193,6 +195,7 @@ export const DataProvider = ({ children }) => {
       title: primary.title || fallbackTitle,
       description: primary.description || fallbackDesc,
       content: primary.content || fallbackContent,
+      order: preserveOrder(base),
     };
   };
 
@@ -227,14 +230,17 @@ export const DataProvider = ({ children }) => {
     };
   };
 
-  const [projects, setProjects] = useState(() => initialProjects.map(normalizeProject));
+  const [projects, setProjects] = useState(() => {
+    const raw = Array.isArray(draft?.projects) ? draft.projects : initialProjects;
+    return ensureOrderFields(raw.map(normalizeProject));
+  });
 
   const [blogPosts, setBlogPosts] = useState(() => {
     const base = initialBlogPosts.map(normalizeBlogPost);
     if (typeof window === 'undefined') return base;
     try {
       const raw = localStorage.getItem(BLOG_POSTS_CACHE_KEY);
-      if (!raw) return base;
+      if (!raw) return ensureOrderFields(base);
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed)) return base;
       return mergeBlogPostsById(base, parsed.map(normalizeBlogPost));
@@ -327,8 +333,8 @@ export const DataProvider = ({ children }) => {
     if (!raw) return;
     const parsed = safeParseJson(raw);
     if (!parsed || typeof parsed !== 'object') return;
-    if (Array.isArray(parsed.projects)) setProjects(parsed.projects.map(normalizeProject));
-    if (Array.isArray(parsed.blogPosts)) setBlogPosts(parsed.blogPosts.map(normalizeBlogPost));
+    if (Array.isArray(parsed.projects)) setProjects(ensureOrderFields(parsed.projects.map(normalizeProject)));
+    if (Array.isArray(parsed.blogPosts)) setBlogPosts(ensureOrderFields(parsed.blogPosts.map(normalizeBlogPost)));
     if (parsed.aboutInfo && typeof parsed.aboutInfo === 'object') setAboutInfo(normalizeAboutInfo(parsed.aboutInfo));
     if (parsed.siteNotice && typeof parsed.siteNotice === 'object') setSiteNotice(normalizeSiteNotice(parsed.siteNotice));
     if (typeof parsed.language === 'string') setLanguage(parsed.language);
@@ -354,8 +360,8 @@ export const DataProvider = ({ children }) => {
   };
 
   const addProject = (project) => {
-    const newProject = normalizeProject({ ...project, id: Date.now() });
-    setProjects(prev => [newProject, ...(Array.isArray(prev) ? prev : [])]);
+    const newProject = normalizeProject({ ...project, id: Date.now(), order: 0 });
+    setProjects((prev) => ensureOrderFields([newProject, ...(Array.isArray(prev) ? prev : [])]));
   };
 
   const updateProject = (updatedProject) => {
@@ -364,12 +370,16 @@ export const DataProvider = ({ children }) => {
   };
 
   const deleteProject = (id) => {
-    setProjects(prev => (Array.isArray(prev) ? prev.filter(p => p.id !== id) : prev));
+    setProjects((prev) => ensureOrderFields((Array.isArray(prev) ? prev : []).filter((p) => p.id !== id)));
+  };
+
+  const reorderProjects = (fromIndex, toIndex) => {
+    setProjects((prev) => reorderArray(sortByOrder(Array.isArray(prev) ? prev : []), fromIndex, toIndex));
   };
 
   const addBlogPost = (post) => {
-    const newPost = normalizeBlogPost({ ...post, id: Date.now() });
-    setBlogPosts(prev => [newPost, ...(Array.isArray(prev) ? prev : [])]);
+    const newPost = normalizeBlogPost({ ...post, id: Date.now(), order: 0 });
+    setBlogPosts((prev) => ensureOrderFields([newPost, ...(Array.isArray(prev) ? prev : [])]));
   };
 
   const updateBlogPost = (updatedPost) => {
@@ -378,7 +388,11 @@ export const DataProvider = ({ children }) => {
   };
 
   const deleteBlogPost = (id) => {
-    setBlogPosts(prev => (Array.isArray(prev) ? prev.filter(p => p.id !== id) : prev));
+    setBlogPosts((prev) => ensureOrderFields((Array.isArray(prev) ? prev : []).filter((p) => p.id !== id)));
+  };
+
+  const reorderBlogPosts = (fromIndex, toIndex) => {
+    setBlogPosts((prev) => reorderArray(sortByOrder(Array.isArray(prev) ? prev : []), fromIndex, toIndex));
   };
 
   const addComment = (postId, comment) => {
@@ -491,11 +505,11 @@ export const DataProvider = ({ children }) => {
       const data = typeof json === 'string' ? JSON.parse(json) : json;
       if (data.projects) {
         const arr = Array.isArray(data.projects) ? data.projects : [];
-        setProjects(arr.map(normalizeProject));
+        setProjects(ensureOrderFields(arr.map(normalizeProject)));
       }
       if (data.blogPosts) {
         const arr = Array.isArray(data.blogPosts) ? data.blogPosts : [];
-        setBlogPosts(arr.map(normalizeBlogPost));
+        setBlogPosts(ensureOrderFields(arr.map(normalizeBlogPost)));
       }
       if (data.aboutInfo) setAboutInfo(data.aboutInfo);
       if (data.siteNotice) setSiteNotice(data.siteNotice);
@@ -508,8 +522,8 @@ export const DataProvider = ({ children }) => {
 
   return (
     <DataContext.Provider value={{
-      projects, addProject, updateProject, deleteProject,
-      blogPosts, addBlogPost, updateBlogPost, deleteBlogPost,
+      projects, addProject, updateProject, deleteProject, reorderProjects,
+      blogPosts, addBlogPost, updateBlogPost, deleteBlogPost, reorderBlogPosts,
       addComment, incrementLike, incrementShare, incrementView,
       aboutInfo, updateAboutInfo,
       siteNotice, updateSiteNotice,

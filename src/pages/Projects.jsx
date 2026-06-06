@@ -3,6 +3,7 @@ import { Github, ExternalLink } from 'lucide-react';
 import { useData, useTranslation } from '../context/DataContext';
 import { buildProjectPath } from '../utils/analyticsPaths';
 import { getProjectLocaleBlock } from '../utils/projectLocale';
+import { sortByOrder } from '../utils/sortOrder';
 
 const normalizeExternalUrl = (raw) => {
   const v = (raw || '').trim();
@@ -140,7 +141,7 @@ const Projects = () => {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 lg:flex-1 lg:items-stretch animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-400">
-        {projects.map((project) => (
+        {sortByOrder(projects).map((project) => (
           <ProjectCard
             key={project.id}
             project={project}

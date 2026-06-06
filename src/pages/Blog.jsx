@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Calendar, ArrowRight, Eye, Heart, Share2, Search, X } from 'lucide-react';
+import { Calendar, ArrowRight, Eye, Heart, Share2, Search, X, ListOrdered } from 'lucide-react';
 import { useData, useTranslation } from '../context/DataContext';
 import { Link } from 'react-router-dom';
 import { useBlogLocale } from '../hooks/useBlogLocale';
 import { getDisplayLocaleBlock, needsAutoTranslation } from '../utils/blogLocale';
+import { compareByOrder } from '../utils/sortOrder';
 
 const useIsTruncated = (ref, text) => {
   const [isTruncated, setIsTruncated] = useState(false);
@@ -108,7 +109,7 @@ const BlogPostCard = ({ post, language, t }) => {
 const Blog = () => {
   const { blogPosts, language } = useData();
   const t = useTranslation();
-  const [sortBy, setSortBy] = useState('latest'); // 'latest' or 'popular'
+  const [sortBy, setSortBy] = useState('custom');
   const [searchQuery, setSearchQuery] = useState('');
 
   const getPostText = (post) => getDisplayLocaleBlock(post, language);
@@ -127,9 +128,11 @@ const Blog = () => {
   const sortedPosts = [...filteredPosts].sort((a, b) => {
     if (sortBy === 'latest') {
       return new Date(b.date) - new Date(a.date);
-    } else {
+    }
+    if (sortBy === 'popular') {
       return (b.views || 0) - (a.views || 0);
     }
+    return compareByOrder(a, b);
   });
 
   return (
@@ -168,8 +171,19 @@ const Blog = () => {
 
           <div className="flex items-center bg-white p-1.5 rounded-2xl border border-border-soft self-start md:self-auto shadow-sm">
             <button 
+              onClick={() => setSortBy('custom')}
+              className={`flex items-center px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
+                sortBy === 'custom' 
+                  ? 'bg-brand text-white shadow-lg shadow-brand/20' 
+                  : 'text-text-muted hover:text-brand hover:bg-brand/5'
+              }`}
+            >
+              <ListOrdered className="w-4 h-4 mr-2" />
+              {t('blog.customOrder')}
+            </button>
+            <button 
               onClick={() => setSortBy('latest')}
-              className={`flex items-center px-8 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
+              className={`flex items-center px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
                 sortBy === 'latest' 
                   ? 'bg-brand text-white shadow-lg shadow-brand/20' 
                   : 'text-text-muted hover:text-brand hover:bg-brand/5'
@@ -180,7 +194,7 @@ const Blog = () => {
             </button>
             <button 
               onClick={() => setSortBy('popular')}
-              className={`flex items-center px-8 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
+              className={`flex items-center px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
                 sortBy === 'popular' 
                   ? 'bg-brand text-white shadow-lg shadow-brand/20' 
                   : 'text-text-muted hover:text-brand hover:bg-brand/5'
