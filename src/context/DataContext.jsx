@@ -16,6 +16,7 @@ import {
 } from '../utils/analyticsApi';
 import { resolveAnalyticsPath } from '../utils/analyticsPaths';
 import { detectContentLanguage } from '../utils/blogLocale';
+import { clearBlogLocaleCache } from '../utils/blogEditor';
 import { ensureOrderFields, reorderArray, sortByOrder, preserveOrder } from '../utils/sortOrder';
 
 const normalizeProjectTags = (tags) =>
@@ -417,6 +418,7 @@ export const DataProvider = ({ children }) => {
 
   const updateBlogPost = (updatedPost) => {
     const next = normalizeBlogPost(updatedPost);
+    clearBlogLocaleCache(next.id);
     setBlogPosts(prev => (Array.isArray(prev) ? prev.map(p => p.id === next.id ? next : p) : prev));
   };
 

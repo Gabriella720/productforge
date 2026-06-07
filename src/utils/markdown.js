@@ -55,33 +55,83 @@ const readFileAsDataURL = (file) =>
   });
 
 const IMAGE_EXT_RE = /\.(png|jpe?g|gif|webp|svg|bmp)$/i;
+const MARKDOWN_EXT_RE = /\.(md|markdown)$/i;
 const REMOTE_IMAGE_RE = /^https?:\/\//i;
 
 const stripImageExt = (name) => (name || '').replace(IMAGE_EXT_RE, '');
 
+const normalizeImageKey = (key) => {
+  if (!key) return '';
+  let text = String(key).trim();
+  try {
+    text = decodeURIComponent(text.replace(/\+/g, ' '));
+  } catch {
+    // ignore malformed URI sequences
+  }
+  return text.normalize('NFC');
+};
+
+const isAsciiKey = (key) => /^[\x00-\x7F]*$/.test(key || '');
+
+const lookupKeysFor = (raw) => {
+  const keys = [];
+  const seen = new Set();
+  const add = (value) => {
+    const normalized = normalizeImageKey(value);
+    if (!normalized || seen.has(normalized)) return;
+    seen.add(normalized);
+    keys.push(normalized);
+  };
+
+  add(raw);
+  const base = stripImageExt(normalizeImageKey(raw));
+  if (base) {
+    add(base);
+    ['.png', '.jpg', '.jpeg', '.webp', '.gif'].forEach((ext) => add(`${base}${ext}`));
+    if (isAsciiKey(base)) add(base.toLowerCase());
+  }
+  if (isAsciiKey(normalizeImageKey(raw))) add(String(raw).trim().toLowerCase());
+
+  return keys;
+};
+
+const mapGetImage = (imageMap, raw) => {
+  for (const key of lookupKeysFor(raw)) {
+    const hit = imageMap.get(key);
+    if (hit) return hit;
+  }
+  return null;
+};
+
+export const isImageUploadFile = (file) => {
+  if (!file?.name) return false;
+  if (file.type?.startsWith('image/')) return true;
+  return IMAGE_EXT_RE.test(file.name);
+};
+
+export const isMarkdownUploadFile = (file) => {
+  if (!file?.name) return false;
+  if (file.type === 'text/markdown' || file.type === 'text/plain') return true;
+  return MARKDOWN_EXT_RE.test(file.name);
+};
+
 export const buildImageMapFromFiles = async (files) => {
   const map = new Map();
   const ordered = [];
-  const list = Array.from(files || []).filter((file) => file?.type?.startsWith('image/'));
+  const list = Array.from(files || []).filter(isImageUploadFile);
 
   for (const file of list) {
     const dataUrl = await readFileAsDataURL(file);
-    const baseName = stripImageExt(file.name);
+    const baseName = stripImageExt(normalizeImageKey(file.name));
     ordered.push({ name: file.name, baseName, dataUrl });
 
-    const keys = new Set([
-      file.name,
-      file.name.toLowerCase(),
-      baseName,
-      baseName.toLowerCase(),
-    ]);
+    const keySources = [file.name, baseName];
     if (file.webkitRelativePath) {
-      keys.add(file.webkitRelativePath);
-      keys.add(file.webkitRelativePath.replace(/^.*\//, ''));
-      keys.add(stripImageExt(file.webkitRelativePath.replace(/^.*\//, '')));
+      const leaf = file.webkitRelativePath.replace(/^.*\//, '');
+      keySources.push(file.webkitRelativePath, leaf, stripImageExt(leaf));
     }
-    keys.forEach((key) => {
-      if (key) map.set(key, dataUrl);
+    keySources.forEach((source) => {
+      lookupKeysFor(source).forEach((key) => map.set(key, dataUrl));
     });
   }
 
@@ -89,36 +139,23 @@ export const buildImageMapFromFiles = async (files) => {
 };
 
 const lookupImageDataUrl = (alt, src, imageMap, orderedImages) => {
-  const altText = (alt || '').trim();
-  const altKeys = altText
-    ? [
-        altText,
-        altText.toLowerCase(),
-        `${altText}.png`,
-        `${altText}.jpg`,
-        `${altText}.jpeg`,
-        `${altText}.webp`,
-        stripImageExt(altText),
-      ]
-    : [];
-
-  for (const key of altKeys) {
-    const hit = imageMap.get(key) || imageMap.get(key.toLowerCase());
+  const altText = normalizeImageKey(alt);
+  if (altText) {
+    const hit = mapGetImage(imageMap, altText);
     if (hit) return hit;
   }
 
-  const srcBase = stripImageExt(src.split('/').pop() || '');
-  if (srcBase) {
-    const hit = imageMap.get(srcBase) || imageMap.get(srcBase.toLowerCase());
+  const srcLeaf = normalizeImageKey(src.split('/').pop() || '');
+  if (srcLeaf) {
+    const hit = mapGetImage(imageMap, srcLeaf) || mapGetImage(imageMap, stripImageExt(srcLeaf));
     if (hit) return hit;
   }
 
-  const byAlt = orderedImages.find(
-    (item) =>
-      item.baseName === altText ||
-      item.baseName.toLowerCase() === altText.toLowerCase() ||
-      item.name === altText
-  );
+  const byAlt = orderedImages.find((item) => {
+    const itemBase = normalizeImageKey(item.baseName);
+    const itemName = normalizeImageKey(item.name);
+    return itemBase === altText || itemName === altText || stripImageExt(itemName) === altText;
+  });
   return byAlt?.dataUrl || null;
 };
 
@@ -135,17 +172,15 @@ export const resolveMarkdownImages = (markdown, imageMap = new Map(), orderedIma
     if (!REMOTE_IMAGE_RE.test(src) && !src.startsWith('/')) {
       const candidates = [
         src,
-        decodeURIComponent(src),
         src.replace(/^\.\//, ''),
         src.split('/').pop(),
         stripImageExt(src.split('/').pop() || ''),
       ];
       for (const key of candidates) {
-        if (!key) continue;
-        const hit = imageMap.get(key) || imageMap.get(key.toLowerCase());
+        const hit = mapGetImage(imageMap, key);
         if (hit) return `![${alt}](${hit})`;
       }
-      warnings.push(`未找到配图：${src}（请在上传 Markdown 时一并选择图片文件）`);
+      warnings.push(`未找到配图：${src}（导入时请一并选中同名图片，如 全景数据洞察.jpeg）`);
       return match;
     }
 
@@ -180,12 +215,29 @@ const altTextLabel = (alt) => {
   return text || 'Image';
 };
 
+const looksLikeHtmlArticle = (text) =>
+  /<(?:p|div|h[1-6]|ul|ol|table|blockquote)\b/i.test(text || '');
+
+const looksLikeMarkdownArticle = (text) => {
+  const source = (text || '').trim();
+  if (!source) return false;
+  return (
+    /^#{1,6}\s/m.test(source) ||
+    /^>\s/m.test(source) ||
+    /^[-*+]\s/m.test(source) ||
+    /!\[[^\]]*\]\([^)]+\)/.test(source)
+  );
+};
+
 export const isMarkdownFormat = (contentFormat, content) => {
   if (contentFormat === 'markdown') return true;
-  if (contentFormat === 'html') return false;
   const text = (content || '').trim();
-  if (!text || text.includes('<p>') || text.includes('<div')) return false;
-  return /^#{1,6}\s/m.test(text) || /^>\s/m.test(text) || /^[-*+]\s/m.test(text) || /!\[[^\]]*\]\([^)]+\)/.test(text);
+  if (!text) return false;
+  if (contentFormat === 'html') {
+    return !looksLikeHtmlArticle(text) && looksLikeMarkdownArticle(text);
+  }
+  if (looksLikeHtmlArticle(text)) return false;
+  return looksLikeMarkdownArticle(text);
 };
 
 const FOOTER_EMOJI_RE = /^(?:🔎|🔍|📦|🗂️|📁|💻|🖥️|🗃️|📂|🧰)/;
@@ -396,10 +448,45 @@ export const renderBlogContentToHtml = (content, contentFormat, tocItems = null)
   return html;
 };
 
+const countDataImageRefs = (markdown) =>
+  ((markdown || '').match(/!\[[^\]]*\]\(data:image/g) || []).length;
+
+export const embedImagesIntoMarkdown = async (markdown, imageFiles = []) => {
+  const { map, ordered } = await buildImageMapFromFiles(imageFiles);
+  const before = countDataImageRefs(markdown);
+  const { markdown: resolved, warnings } = resolveMarkdownImages(markdown, map, ordered);
+  return {
+    markdown: resolved,
+    warnings,
+    embeddedCount: countDataImageRefs(resolved) - before,
+    imageFileCount: Array.from(imageFiles || []).filter(isImageUploadFile).length,
+  };
+};
+
 export const processMarkdownUpload = async (mdFile, imageFiles = []) => {
   const text = await mdFile.text();
   const { map, ordered } = await buildImageMapFromFiles(imageFiles);
   const { markdown, warnings } = resolveMarkdownImages(text, map, ordered);
   const meta = extractMarkdownMetadata(markdown);
-  return { markdown, meta, warnings };
+  return {
+    markdown,
+    meta,
+    warnings,
+    embeddedCount: countDataImageRefs(markdown),
+    imageFileCount: Array.from(imageFiles || []).filter(isImageUploadFile).length,
+  };
+};
+
+/** Pick .md + images from one file dialog; images are embedded automatically. */
+export const processMarkdownImportFromFiles = async (files) => {
+  const list = Array.from(files || []);
+  const mdFile = list.find(isMarkdownUploadFile);
+  const imageFiles = list.filter(isImageUploadFile);
+
+  if (!mdFile) {
+    return { kind: 'images_only', imageFiles };
+  }
+
+  const result = await processMarkdownUpload(mdFile, imageFiles);
+  return { kind: 'markdown', ...result };
 };

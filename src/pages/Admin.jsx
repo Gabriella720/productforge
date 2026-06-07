@@ -9,12 +9,13 @@ import { useNavigate } from 'react-router-dom';
 import { Editor } from '@tinymce/tinymce-react';
 import { isAnalyticsSyncConfigured, syncPendingVisits, getRecordVisitorLabel } from '../utils/analyticsApi';
 import {
+  embedImagesIntoMarkdown,
+  isImageUploadFile,
   processMarkdownUpload,
-  buildImageMapFromFiles,
-  resolveMarkdownImages,
   renderMarkdownToHtml,
   isMarkdownFormat,
 } from '../utils/markdown';
+import { applyBlogLocalePatch, buildBlogPublishPayload } from '../utils/blogEditor';
 import BlogContent from '../components/BlogContent';
 import SortableList from '../components/SortableList';
 import { sortByOrder } from '../utils/sortOrder';
@@ -970,7 +971,7 @@ const DataBackup = () => {
   );
 };
 
-const ImageUpload = ({ label, value, onChange }) => {
+const ImageUpload = ({ label, hint, value, onChange }) => {
   const fileInputRef = useRef(null);
   const [textValue, setTextValue] = useState(value || '');
 
@@ -1004,7 +1005,8 @@ const ImageUpload = ({ label, value, onChange }) => {
 
   return (
     <div>
-      <label className="block text-sm font-semibold text-text-main mb-2">{label}</label>
+      <label className="block text-sm font-semibold text-text-main mb-1">{label}</label>
+      {hint && <p className="text-xs text-text-muted mb-2">{hint}</p>}
       <div className="flex items-start space-x-4">
         <div className="flex-grow">
           <input 
@@ -1297,17 +1299,7 @@ const BlogEditor = ({ post, onSave, onCancel }) => {
   const isMarkdownMode = langData.contentFormat === 'markdown';
 
   const setLangField = (field, value) => {
-    setFormData((prev) => {
-      const nextI18n = {
-        en: { contentFormat: 'html', ...(prev.i18n?.en || {}) },
-        zh: { contentFormat: 'html', ...(prev.i18n?.zh || {}) },
-      };
-      nextI18n[activeLang] = {
-        ...nextI18n[activeLang],
-        [field]: value,
-      };
-      return { ...prev, i18n: nextI18n };
-    });
+    setFormData((prev) => applyBlogLocalePatch(prev, activeLang, { [field]: value }));
   };
 
   const setEditorMode = (mode) => {
@@ -1315,22 +1307,24 @@ const BlogEditor = ({ post, onSave, onCancel }) => {
     const currentContent = langData.content || '';
 
     if (nextFormat === 'html' && langData.contentFormat === 'markdown') {
-      setFormData((prev) => {
-        const nextI18n = {
-          en: { ...(prev.i18n?.en || {}), contentFormat: prev.i18n?.en?.contentFormat || 'html' },
-          zh: { ...(prev.i18n?.zh || {}), contentFormat: prev.i18n?.zh?.contentFormat || 'html' },
-        };
-        nextI18n[activeLang] = {
-          ...nextI18n[activeLang],
+      setFormData((prev) =>
+        applyBlogLocalePatch(prev, activeLang, {
           content: renderMarkdownToHtml(currentContent),
           contentFormat: 'html',
-        };
-        return { ...prev, i18n: nextI18n };
-      });
+        })
+      );
       return;
     }
 
     setLangField('contentFormat', nextFormat);
+  };
+
+  const showImportNotice = (warnings = []) => {
+    setUploadNotice(
+      warnings.length
+        ? `${t('admin.importSuccess')} · ${warnings.join(' ')}`
+        : t('admin.importSuccess')
+    );
   };
 
   const handleMarkdownFile = async (e) => {
@@ -1338,57 +1332,52 @@ const BlogEditor = ({ post, onSave, onCancel }) => {
     e.target.value = '';
     if (!mdFile) return;
 
-    const imageFiles = mdImagesRef.current?.files ? Array.from(mdImagesRef.current.files) : [];
     try {
-      const { markdown, meta, warnings } = await processMarkdownUpload(mdFile, imageFiles);
-      applyMarkdownImport(markdown, meta, warnings);
+      const { markdown, meta, warnings } = await processMarkdownUpload(mdFile, []);
+      applyMarkdownImport(markdown, meta);
+      showImportNotice(warnings);
     } catch {
       setUploadNotice(t('admin.markdownUploadFailed'));
     }
   };
 
-  const applyMarkdownImport = (markdown, meta, warnings = []) => {
+  const handleImageImport = async (e) => {
+    const imageFiles = Array.from(e.target.files || []).filter(isImageUploadFile);
+    e.target.value = '';
+    if (!imageFiles.length) {
+      setUploadNotice(t('admin.markdownNoImagesSelected'));
+      return;
+    }
+
+    const sourceContent = (formData.i18n?.[activeLang]?.content || formData.content || '').trim();
+    if (!sourceContent) {
+      setUploadNotice(t('admin.markdownNoContentForImages'));
+      return;
+    }
+
+    try {
+      const { markdown, warnings } = await embedImagesIntoMarkdown(sourceContent, imageFiles);
+      setFormData((prev) =>
+        applyBlogLocalePatch(prev, activeLang, { content: markdown, contentFormat: 'markdown' })
+      );
+      showImportNotice(warnings);
+    } catch {
+      setUploadNotice(t('admin.markdownUploadFailed'));
+    }
+  };
+
+  const applyMarkdownImport = (markdown, meta) => {
     setFormData((prev) => {
-      const nextI18n = {
-        en: { contentFormat: 'html', ...(prev.i18n?.en || {}) },
-        zh: { contentFormat: 'html', ...(prev.i18n?.zh || {}) },
-      };
-      const current = nextI18n[activeLang] || {};
-      nextI18n[activeLang] = {
-        ...current,
+      const current = prev.i18n?.[activeLang] || {};
+      return applyBlogLocalePatch(prev, activeLang, {
         content: markdown,
         contentFormat: 'markdown',
         title: current.title?.trim() ? current.title : (meta?.title || current.title || ''),
         description: current.description?.trim()
           ? current.description
           : (meta?.description || current.description || ''),
-      };
-      return { ...prev, i18n: nextI18n };
+      });
     });
-
-    const noticeParts = [t('admin.markdownUploadSuccess')];
-    if (meta?.title) noticeParts.push(`${t('admin.markdownTitleDetected')}: ${meta.title}`);
-    if (warnings.length) noticeParts.push(warnings.join(' '));
-    setUploadNotice(noticeParts.join(' · '));
-  };
-
-  const handleEmbedImages = async () => {
-    const imageFiles = mdImagesRef.current?.files ? Array.from(mdImagesRef.current.files) : [];
-    if (!imageFiles.length) {
-      setUploadNotice(t('admin.markdownNoImagesSelected'));
-      return;
-    }
-    try {
-      const { map, ordered } = await buildImageMapFromFiles(imageFiles);
-      const { markdown, warnings } = resolveMarkdownImages(langData.content || '', map, ordered);
-      setLangField('content', markdown);
-      setLangField('contentFormat', 'markdown');
-      const noticeParts = [t('admin.markdownEmbedOk')];
-      if (warnings.length) noticeParts.push(warnings.join(' '));
-      setUploadNotice(noticeParts.join(' · '));
-    } catch {
-      setUploadNotice(t('admin.markdownEmbedFailed'));
-    }
   };
 
   return (
@@ -1415,17 +1404,7 @@ const BlogEditor = ({ post, onSave, onCancel }) => {
               onClick={() => {
                 const now = new Date();
                 const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                
-                const zh = formData.i18n?.zh || { title: '', description: '', content: '' };
-                const en = formData.i18n?.en || { title: '', description: '', content: '' };
-                const primary = (zh.content || zh.title) ? zh : en;
-                onSave({ 
-                  ...formData, 
-                  date: dateStr,
-                  title: primary.title || formData.title,
-                  description: primary.description || formData.description,
-                  content: primary.content || formData.content,
-                });
+                onSave(buildBlogPublishPayload(formData, activeLang, { date: dateStr }));
               }}
               className="flex items-center px-8 py-2.5 bg-brand text-white rounded-xl font-bold hover:bg-brand-hover transition-all shadow-md hover:shadow-brand/20"
             >
@@ -1467,7 +1446,12 @@ const BlogEditor = ({ post, onSave, onCancel }) => {
             className="w-full text-4xl font-bold text-text-main border-none outline-none mb-10 placeholder:text-gray-200"
           />
           
-          <ImageUpload label="Cover Image" value={formData.image} onChange={v => setFormData({...formData, image: v})} />
+          <ImageUpload
+            label={t('admin.coverImageLabel')}
+            hint={t('admin.coverImageHint')}
+            value={formData.image}
+            onChange={v => setFormData({...formData, image: v})}
+          />
           
           <div className="mt-8">
             <label className="block text-sm font-semibold text-text-main mb-3">Summary (For card list)</label>
@@ -1507,11 +1491,11 @@ const BlogEditor = ({ post, onSave, onCancel }) => {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <input
                 ref={mdInputRef}
                 type="file"
-                accept=".md,text/markdown,text/plain"
+                accept=".md,.markdown,text/markdown,text/plain"
                 onChange={handleMarkdownFile}
                 className="hidden"
               />
@@ -1520,6 +1504,7 @@ const BlogEditor = ({ post, onSave, onCancel }) => {
                 type="file"
                 accept="image/*"
                 multiple
+                onChange={handleImageImport}
                 className="hidden"
               />
               <button
@@ -1533,18 +1518,10 @@ const BlogEditor = ({ post, onSave, onCancel }) => {
               <button
                 type="button"
                 onClick={() => mdImagesRef.current?.click()}
-                className="inline-flex items-center px-4 py-2 border border-border-soft text-text-main rounded-xl text-sm font-semibold hover:bg-bg-main transition-all"
+                className="inline-flex items-center px-4 py-2 bg-brand text-white rounded-xl text-sm font-semibold hover:bg-brand-hover transition-all shadow-sm"
               >
                 <ImageIcon className="w-4 h-4 mr-2" />
-                {t('admin.markdownChooseImages')}
-              </button>
-              <button
-                type="button"
-                onClick={handleEmbedImages}
-                className="inline-flex items-center px-4 py-2 border border-brand/30 text-brand rounded-xl text-sm font-semibold hover:bg-brand/5 transition-all"
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                {t('admin.markdownEmbedImages')}
+                {t('admin.markdownImportImages')}
               </button>
             </div>
             {uploadNotice && (

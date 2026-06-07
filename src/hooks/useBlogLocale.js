@@ -8,8 +8,47 @@ import {
 } from '../utils/blogLocale';
 import { translateBlogFields } from '../utils/translateService';
 
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const postCacheKey = (postId, lang) => `blogResolved:${CACHE_VERSION}:${postId}:${lang}`;
+
+const getInitialLocaleState = (post, lang, includeContent) => {
+  if (!post) {
+    return {
+      title: '',
+      description: '',
+      content: '',
+      contentFormat: 'html',
+      loading: false,
+      isAutoTranslated: false,
+      error: null,
+    };
+  }
+
+  const source = getPrimarySourceLocale(post);
+  if (needsAutoTranslation(post, lang)) {
+    return {
+      title: '',
+      description: '',
+      content: '',
+      contentFormat: source.contentFormat || 'html',
+      loading: false,
+      isAutoTranslated: false,
+      error: null,
+    };
+  }
+
+  const direct = getLocaleBlock(post, lang);
+  const display = direct.content || direct.title ? direct : source;
+  return {
+    title: display.title || source.title || '',
+    description: display.description || source.description || '',
+    content: includeContent ? (display.content || source.content || '') : '',
+    contentFormat: display.contentFormat || source.contentFormat || 'html',
+    loading: false,
+    isAutoTranslated: false,
+    error: null,
+  };
+};
 
 const withContentFallback = (fields, source, includeContent) => {
   const contentFormat = fields.contentFormat || source.contentFormat || 'html';
@@ -21,15 +60,7 @@ const withContentFallback = (fields, source, includeContent) => {
 export const useBlogLocale = (post, options = {}) => {
   const { includeContent = true } = options;
   const { language } = useData();
-  const [state, setState] = useState({
-    title: '',
-    description: '',
-    content: '',
-    contentFormat: 'html',
-    loading: false,
-    isAutoTranslated: false,
-    error: null,
-  });
+  const [state, setState] = useState(() => getInitialLocaleState(post, language, includeContent));
 
   useEffect(() => {
     if (!post) return undefined;

@@ -9,6 +9,7 @@ import { useBlogLocale } from '../hooks/useBlogLocale';
 import { getLocaleBlock, getPrimarySourceLocale } from '../utils/blogLocale';
 import BlogContent from '../components/BlogContent';
 import BlogTableOfContents from '../components/BlogTableOfContents';
+import { isMarkdownFormat } from '../utils/markdown';
 
 const BlogDetail = () => {
   const { id } = useParams();
@@ -29,8 +30,12 @@ const BlogDetail = () => {
   const localeBlock = post ? getLocaleBlock(post, language) : null;
   const fallbackContent = localeBlock?.content || fallbackSource?.content || '';
   const fallbackFormat = localeBlock?.contentFormat || fallbackSource?.contentFormat || post?.contentFormat || 'html';
-  const displayContent = (postContent || '').trim() || fallbackContent;
-  const displayFormat = postContentFormat || fallbackFormat;
+  const resolvedContent = (postContent || '').trim();
+  const displayContent = resolvedContent || fallbackContent;
+  const baseFormat = resolvedContent
+    ? (postContentFormat || fallbackFormat)
+    : fallbackFormat;
+  const displayFormat = isMarkdownFormat(baseFormat, displayContent) ? 'markdown' : baseFormat;
 
   const [commentText, setCommentText] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
