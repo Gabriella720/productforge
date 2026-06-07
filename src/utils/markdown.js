@@ -188,12 +188,56 @@ export const isMarkdownFormat = (contentFormat, content) => {
   return /^#{1,6}\s/m.test(text) || /^>\s/m.test(text) || /^[-*+]\s/m.test(text) || /!\[[^\]]*\]\([^)]+\)/.test(text);
 };
 
+const FOOTER_EMOJI_RE = /^(?:🔎|🔍|📦|🗂️|📁|💻|🖥️|🗃️|📂|🧰)/;
+
+export const isFooterMarkdownLine = (line) => {
+  const trimmed = (line || '').trim().replace(/^[-*+]\s+/, '');
+  if (!trimmed) return false;
+  if (FOOTER_EMOJI_RE.test(trimmed)) return true;
+  return /^\p{Extended_Pictographic}/u.test(trimmed);
+};
+
+/** Group consecutive emoji footer rows into a list so spacing and bold stay consistent. */
+const normalizeFooterLinkRowLines = (lines) => {
+  const out = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+    if (!isFooterMarkdownLine(line)) {
+      out.push(line);
+      i += 1;
+      continue;
+    }
+
+    const group = [];
+    while (i < lines.length) {
+      const current = lines[i];
+      if (current.trim() === '') {
+        const next = lines[i + 1];
+        if (next !== undefined && isFooterMarkdownLine(next)) {
+          i += 1;
+          continue;
+        }
+        break;
+      }
+      if (!isFooterMarkdownLine(current)) break;
+      group.push(current.trim().replace(/^[-*+]\s+/, ''));
+      i += 1;
+    }
+
+    group.forEach((item) => out.push(`- ${item}`));
+  }
+
+  return out;
+};
+
 /** Fix Feishu-export lists: <br/> breaks and blockquotes must indent under list items. */
 export const normalizeFeishuMarkdown = (markdown) => {
   let md = (markdown || '').toString();
   md = md.replace(/<br\s*\/?>/gi, '\n');
 
-  const lines = md.split('\n');
+  const lines = normalizeFooterLinkRowLines(md.split('\n'));
   const out = [];
   let i = 0;
 
@@ -241,6 +285,8 @@ export const renderMarkdownToHtml = (markdown) => {
   return DOMPurify.sanitize(enriched, SANITIZE_OPTIONS);
 };
 
+const isFooterRow = (el) => isFooterMarkdownLine((el.textContent || '').trim());
+
 /** Map markdown structure → Feishu-style semantic classes for 1:1 article layout. */
 const enrichMarkdownHtml = (html) => {
   if (typeof document === 'undefined') return html;
@@ -248,6 +294,15 @@ const enrichMarkdownHtml = (html) => {
   const doc = new DOMParser().parseFromString(`<div id="md-root">${html}</div>`, 'text/html');
   const root = doc.getElementById('md-root');
   if (!root) return html;
+
+  root.querySelectorAll('u').forEach((el) => {
+    const parent = el.parentNode;
+    if (!parent) return;
+    while (el.firstChild) parent.insertBefore(el.firstChild, el);
+    parent.removeChild(el);
+  });
+
+  root.querySelectorAll('[style]').forEach((el) => el.removeAttribute('style'));
 
   root.querySelectorAll('h2').forEach((el) => {
     el.classList.add('md-h2-banner');
@@ -294,9 +349,23 @@ const enrichMarkdownHtml = (html) => {
     }
   });
 
-  root.querySelectorAll('ul').forEach((el) => el.classList.add('md-feishu-list'));
+  root.querySelectorAll('ul').forEach((ul) => {
+    ul.classList.add('md-feishu-list');
+    const items = Array.from(ul.children).filter((child) => child.tagName === 'LI');
+    if (items.length > 0 && items.every((li) => isFooterRow(li))) {
+      ul.classList.add('md-footer-links');
+    }
+  });
+
+  root.querySelectorAll('p').forEach((p) => {
+    if (isFooterRow(p)) p.classList.add('md-footer-row');
+  });
 
   root.querySelectorAll('li').forEach((li) => {
+    if (isFooterRow(li)) {
+      li.classList.add('md-footer-row');
+      return;
+    }
     const label =
       li.querySelector(':scope > p:first-child strong:first-child') ||
       li.querySelector(':scope > strong:first-child');

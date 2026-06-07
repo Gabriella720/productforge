@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { useData, useTranslation } from '../context/DataContext';
 import { useBlogLocale } from '../hooks/useBlogLocale';
-import { getPrimarySourceLocale } from '../utils/blogLocale';
+import { getLocaleBlock, getPrimarySourceLocale } from '../utils/blogLocale';
 import BlogContent from '../components/BlogContent';
 import BlogTableOfContents from '../components/BlogTableOfContents';
 
@@ -14,7 +14,7 @@ const BlogDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const t = useTranslation();
-  const { blogPosts, incrementView, incrementLike, incrementShare, addComment, isAdmin } = useData();
+  const { blogPosts, incrementView, incrementLike, incrementShare, addComment, isAdmin, language } = useData();
   const post = blogPosts.find(p => p.id === parseInt(id));
   const {
     title: postTitle,
@@ -26,10 +26,11 @@ const BlogDetail = () => {
   } = useBlogLocale(post);
 
   const fallbackSource = post ? getPrimarySourceLocale(post) : null;
-  const fallbackContent = fallbackSource?.content || '';
-  const fallbackFormat = fallbackSource?.contentFormat || 'html';
+  const localeBlock = post ? getLocaleBlock(post, language) : null;
+  const fallbackContent = localeBlock?.content || fallbackSource?.content || '';
+  const fallbackFormat = localeBlock?.contentFormat || fallbackSource?.contentFormat || post?.contentFormat || 'html';
   const displayContent = (postContent || '').trim() || fallbackContent;
-  const displayFormat = (postContent || '').trim() ? postContentFormat : fallbackFormat;
+  const displayFormat = postContentFormat || fallbackFormat;
 
   const [commentText, setCommentText] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);

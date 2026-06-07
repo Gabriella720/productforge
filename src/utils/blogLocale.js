@@ -10,10 +10,18 @@ export const detectContentLanguage = (text) => {
   return 'en';
 };
 
+const resolveContentFormat = (block, top) => {
+  if (block?.contentFormat === 'markdown') return 'markdown';
+  if (block?.contentFormat === 'html') return 'html';
+  if (top?.contentFormat === 'markdown') return 'markdown';
+  return 'html';
+};
+
 const blockFrom = (block, top) => ({
   title: (block?.title || top?.title || '').trim(),
   description: (block?.description || top?.description || '').trim(),
   content: (block?.content || top?.content || '').trim(),
+  contentFormat: resolveContentFormat(block, top),
 });
 
 /** Read a locale block; fixes posts where Chinese lives in EN tab or ZH has old English templates. */
@@ -68,7 +76,7 @@ export const getPrimarySourceLocale = (post) => {
     const lang = detectContentLanguage(`${en.title} ${en.description}`) || 'en';
     return { lang, ...en };
   }
-  return { lang: 'zh', title: '', description: '', content: '' };
+  return { lang: 'zh', title: '', description: '', content: '', contentFormat: 'html' };
 };
 
 export const needsAutoTranslation = (post, targetLang) => {

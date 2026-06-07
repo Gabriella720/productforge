@@ -8,7 +8,13 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { Editor } from '@tinymce/tinymce-react';
 import { isAnalyticsSyncConfigured, syncPendingVisits, getRecordVisitorLabel } from '../utils/analyticsApi';
-import { processMarkdownUpload, buildImageMapFromFiles, resolveMarkdownImages } from '../utils/markdown';
+import {
+  processMarkdownUpload,
+  buildImageMapFromFiles,
+  resolveMarkdownImages,
+  renderMarkdownToHtml,
+  isMarkdownFormat,
+} from '../utils/markdown';
 import BlogContent from '../components/BlogContent';
 import SortableList from '../components/SortableList';
 import { sortByOrder } from '../utils/sortOrder';
@@ -1275,11 +1281,14 @@ const BlogEditor = ({ post, onSave, onCancel }) => {
     const title = (formData.title || '').toString();
     const description = (formData.description || '').toString();
     const content = (formData.content || '').toString();
+    const legacyFormat = formData.contentFormat === 'markdown' || isMarkdownFormat(undefined, content)
+      ? 'markdown'
+      : 'html';
     setFormData(prev => ({
       ...prev,
       i18n: {
-        en: { title, description, content, contentFormat: 'html' },
-        zh: { title, description, content, contentFormat: 'html' }
+        en: { title, description, content, contentFormat: legacyFormat },
+        zh: { title, description, content, contentFormat: legacyFormat }
       }
     }));
   }, [formData.i18n, formData.title, formData.description, formData.content]);
@@ -1302,7 +1311,26 @@ const BlogEditor = ({ post, onSave, onCancel }) => {
   };
 
   const setEditorMode = (mode) => {
-    setLangField('contentFormat', mode === 'markdown' ? 'markdown' : 'html');
+    const nextFormat = mode === 'markdown' ? 'markdown' : 'html';
+    const currentContent = langData.content || '';
+
+    if (nextFormat === 'html' && langData.contentFormat === 'markdown') {
+      setFormData((prev) => {
+        const nextI18n = {
+          en: { ...(prev.i18n?.en || {}), contentFormat: prev.i18n?.en?.contentFormat || 'html' },
+          zh: { ...(prev.i18n?.zh || {}), contentFormat: prev.i18n?.zh?.contentFormat || 'html' },
+        };
+        nextI18n[activeLang] = {
+          ...nextI18n[activeLang],
+          content: renderMarkdownToHtml(currentContent),
+          contentFormat: 'html',
+        };
+        return { ...prev, i18n: nextI18n };
+      });
+      return;
+    }
+
+    setLangField('contentFormat', nextFormat);
   };
 
   const handleMarkdownFile = async (e) => {

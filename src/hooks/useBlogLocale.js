@@ -12,9 +12,10 @@ const CACHE_VERSION = 'v4';
 const postCacheKey = (postId, lang) => `blogResolved:${CACHE_VERSION}:${postId}:${lang}`;
 
 const withContentFallback = (fields, source, includeContent) => {
-  if (!includeContent) return { ...fields, content: '' };
+  const contentFormat = fields.contentFormat || source.contentFormat || 'html';
+  if (!includeContent) return { ...fields, content: '', contentFormat };
   const content = (fields.content || '').trim() || source.content || '';
-  return { ...fields, content };
+  return { ...fields, content, contentFormat };
 };
 
 export const useBlogLocale = (post, options = {}) => {
@@ -24,6 +25,7 @@ export const useBlogLocale = (post, options = {}) => {
     title: '',
     description: '',
     content: '',
+    contentFormat: 'html',
     loading: false,
     isAutoTranslated: false,
     error: null,
@@ -46,6 +48,7 @@ export const useBlogLocale = (post, options = {}) => {
         title: resolved.title || source.title,
         description: resolved.description || source.description,
         content: resolved.content,
+        contentFormat: resolved.contentFormat || source.contentFormat || 'html',
         loading,
         isAutoTranslated: autoTranslated,
         error,
@@ -78,6 +81,7 @@ export const useBlogLocale = (post, options = {}) => {
         title: '',
         description: '',
         content: '',
+        contentFormat: 'html',
         loading: true,
         isAutoTranslated: false,
         error: null,

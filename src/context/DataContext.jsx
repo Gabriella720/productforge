@@ -208,6 +208,7 @@ export const DataProvider = ({ children }) => {
       title: primary.title || fallbackTitle,
       description: primary.description || fallbackDesc,
       content: primary.content || fallbackContent,
+      contentFormat: primary.contentFormat || 'html',
       order: preserveOrder(base),
     };
   };
