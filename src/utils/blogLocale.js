@@ -1,7 +1,18 @@
 export const hasCjk = (text) => /[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/.test(text || '');
 
+/** Strip embedded assets/noise so Chinese posts with data-URL images are not misread as English. */
+export const sampleForLanguageDetection = (text) =>
+  (text || '')
+    .replace(/data:[^;]+;base64,[A-Za-z0-9+/=]+/gi, ' ')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/https?:\/\/\S+/g, ' ')
+    .replace(/[A-Za-z0-9+/=]{120,}/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
 export const detectContentLanguage = (text) => {
-  const plain = (text || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  const plain = sampleForLanguageDetection(text);
   if (!plain) return null;
   const cjk = (plain.match(/[\u4e00-\u9fff]/g) || []).length;
   const latin = (plain.match(/[a-zA-Z]/g) || []).length;
@@ -82,6 +93,9 @@ export const getPrimarySourceLocale = (post) => {
 export const needsAutoTranslation = (post, targetLang) => {
   const source = getPrimarySourceLocale(post);
   if (!source.content && !source.title) return false;
+
+  // Article already authored in the UI language (e.g. Chinese post in Chinese UI).
+  if (source.lang === targetLang) return false;
 
   const target = getLocaleBlock(post, targetLang);
   if (!target.content && !target.title && !target.description) {

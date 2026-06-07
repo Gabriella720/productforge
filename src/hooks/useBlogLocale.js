@@ -11,6 +11,27 @@ import { translateBlogFields } from '../utils/translateService';
 const CACHE_VERSION = 'v5';
 const postCacheKey = (postId, lang) => `blogResolved:${CACHE_VERSION}:${postId}:${lang}`;
 
+const readCachedLocale = (postId, lang, source, includeContent) => {
+  if (typeof window === 'undefined' || postId == null) return null;
+  const cachedRaw = localStorage.getItem(postCacheKey(postId, lang));
+  if (!cachedRaw) return null;
+  try {
+    const parsed = JSON.parse(cachedRaw);
+    if (!isResolvedLocaleValid(parsed, lang, source)) return null;
+    return {
+      title: parsed.title || '',
+      description: parsed.description || '',
+      content: includeContent ? (parsed.content || '') : '',
+      contentFormat: parsed.contentFormat || source.contentFormat || 'html',
+      loading: false,
+      isAutoTranslated: true,
+      error: null,
+    };
+  } catch {
+    return null;
+  }
+};
+
 const getInitialLocaleState = (post, lang, includeContent) => {
   if (!post) {
     return {
@@ -25,26 +46,29 @@ const getInitialLocaleState = (post, lang, includeContent) => {
   }
 
   const source = getPrimarySourceLocale(post);
-  if (needsAutoTranslation(post, lang)) {
+  if (!needsAutoTranslation(post, lang)) {
+    const direct = getLocaleBlock(post, lang);
+    const display = direct.content || direct.title ? direct : source;
     return {
-      title: '',
-      description: '',
-      content: '',
-      contentFormat: source.contentFormat || 'html',
+      title: display.title || source.title || '',
+      description: display.description || source.description || '',
+      content: includeContent ? (display.content || source.content || '') : '',
+      contentFormat: display.contentFormat || source.contentFormat || 'html',
       loading: false,
       isAutoTranslated: false,
       error: null,
     };
   }
 
-  const direct = getLocaleBlock(post, lang);
-  const display = direct.content || direct.title ? direct : source;
+  const cached = readCachedLocale(post.id, lang, source, includeContent);
+  if (cached) return cached;
+
   return {
-    title: display.title || source.title || '',
-    description: display.description || source.description || '',
-    content: includeContent ? (display.content || source.content || '') : '',
-    contentFormat: display.contentFormat || source.contentFormat || 'html',
-    loading: false,
+    title: '',
+    description: '',
+    content: '',
+    contentFormat: source.contentFormat || 'html',
+    loading: true,
     isAutoTranslated: false,
     error: null,
   };
@@ -94,18 +118,18 @@ export const useBlogLocale = (post, options = {}) => {
         return;
       }
 
-      const cachedRaw = localStorage.getItem(postCacheKey(postId, language));
-      if (cachedRaw) {
-        try {
-          const parsed = JSON.parse(cachedRaw);
-          if (isResolvedLocaleValid(parsed, language, source)) {
-            applyResolved(parsed, { autoTranslated: true });
-            return;
-          }
-          localStorage.removeItem(postCacheKey(postId, language));
-        } catch {
-          localStorage.removeItem(postCacheKey(postId, language));
-        }
+      const cached = readCachedLocale(postId, language, source, includeContent);
+      if (cached) {
+        apply({
+          title: cached.title,
+          description: cached.description,
+          content: cached.content,
+          contentFormat: cached.contentFormat,
+          loading: false,
+          isAutoTranslated: true,
+          error: null,
+        });
+        return;
       }
 
       apply({
