@@ -22,8 +22,14 @@ export const fetchRemoteSiteData = async (config = getGitHubPublishConfig()) => 
   try {
     const res = await fetch(`${url}?t=${Date.now()}`, { cache: 'no-store' });
     if (!res.ok) return null;
-    const data = await res.json();
-    return data && typeof data === 'object' ? data : null;
+    const text = await res.text();
+    try {
+      const data = JSON.parse(text);
+      return data && typeof data === 'object' ? data : null;
+    } catch {
+      console.warn('remote site-data.json is invalid JSON', { bytes: text.length });
+      return null;
+    }
   } catch {
     return null;
   }

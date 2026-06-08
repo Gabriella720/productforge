@@ -272,6 +272,56 @@ export const publishJsonToRepo = async ({
   return { ok: true, commitUrl: result?.commit?.html_url || '' };
 };
 
+export const publishBinaryToRepo = async ({
+  token, owner, repo, branch, path, base64Content, message,
+}) => {
+  const normalized = normalizeGitHubToken(token);
+  if (!normalized) return { ok: false, error: '请先填写 GitHub Token。', status: 401 };
+
+  const b = (branch || 'main').toString().trim();
+  const p = (path || '').toString().trim();
+  const ownerName = (owner || '').trim();
+  const repoName = (repo || '').trim();
+  if (!ownerName || !repoName || !p) {
+    return { ok: false, error: '上传参数不完整。', status: 400 };
+  }
+
+  const apiPath = p.split('/').map(encodeURIComponent).join('/');
+  const repoUrl = `${GITHUB_API}/repos/${encodeURIComponent(ownerName)}/${encodeURIComponent(repoName)}`;
+  const getUrl = `${repoUrl}/contents/${apiPath}?ref=${encodeURIComponent(b)}`;
+
+  let sha;
+  const getRes = await fetchGitHub(getUrl, normalized);
+  if (getRes.ok) {
+    const existing = await getRes.json();
+    sha = existing?.sha;
+  } else if (getRes.status !== 404) {
+    const msg = await parseGitHubError(getRes);
+    return { ok: false, error: formatGitHubApiError(getRes.status, msg), status: getRes.status };
+  }
+
+  const putBody = {
+    message: message || `Upload ${p}`,
+    content: (base64Content || '').toString(),
+    branch: b,
+  };
+  if (sha) putBody.sha = sha;
+
+  const putRes = await fetch(`${repoUrl}/contents/${apiPath}`, {
+    method: 'PUT',
+    headers: { ...getGitHubHeaders(normalized), 'Content-Type': 'application/json' },
+    body: JSON.stringify(putBody),
+  });
+
+  if (!putRes.ok) {
+    const msg = await parseGitHubError(putRes);
+    return { ok: false, error: formatGitHubApiError(putRes.status, msg), status: putRes.status };
+  }
+
+  const result = await putRes.json();
+  return { ok: true, commitUrl: result?.commit?.html_url || '' };
+};
+
 export const detectGitHubPagesRepo = () => {
   try {
     const host = window.location.host;

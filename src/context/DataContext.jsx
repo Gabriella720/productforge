@@ -116,6 +116,11 @@ const readSiteNoticeCache = () => {
   }
 };
 
+const shouldUsePublishedLocalCache = () => {
+  if (typeof window === 'undefined') return false;
+  return window.location.pathname.includes('/admin');
+};
+
 const mergeBlogPostsById = (basePosts, cachedPosts) => {
   const map = new Map((basePosts || []).map((p) => [p.id, p]));
   (cachedPosts || []).forEach((p) => {
@@ -261,15 +266,16 @@ export const DataProvider = ({ children }) => {
 
   const [blogPosts, setBlogPosts] = useState(() => {
     const base = initialBlogPosts.map(normalizeBlogPost);
-    if (typeof window === 'undefined') return base;
+    if (typeof window === 'undefined') return ensureOrderFields(base);
+    if (!shouldUsePublishedLocalCache()) return ensureOrderFields(base);
     try {
       const raw = localStorage.getItem(BLOG_POSTS_CACHE_KEY);
       if (!raw) return ensureOrderFields(base);
       const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return base;
+      if (!Array.isArray(parsed)) return ensureOrderFields(base);
       return mergeBlogPostsById(base, parsed.map(normalizeBlogPost));
     } catch {
-      return base;
+      return ensureOrderFields(base);
     }
   });
 
@@ -279,6 +285,9 @@ export const DataProvider = ({ children }) => {
   });
 
   const [siteNotice, setSiteNotice] = useState(() => {
+    if (!shouldUsePublishedLocalCache()) {
+      return normalizeSiteNotice(initialSiteNotice);
+    }
     const cached = readSiteNoticeCache();
     if (cached) return normalizeSiteNotice(cached);
     const base = draft?.siteNotice && typeof draft.siteNotice === 'object' ? draft.siteNotice : initialSiteNotice;
@@ -557,6 +566,16 @@ export const DataProvider = ({ children }) => {
     projects, blogPosts, aboutInfo, siteNotice, language,
   }), [projects, blogPosts, aboutInfo, siteNotice, language]);
 
+  const applyPreparedSiteData = useCallback((preparedContent) => {
+    if (!preparedContent) return;
+    try {
+      const parsed = JSON.parse(preparedContent);
+      applySiteDataPayload(parsed);
+    } catch {
+      // ignore
+    }
+  }, [applySiteDataPayload]);
+
   const manualSyncSiteData = useCallback(async () => {
     const content = exportData();
     const snapshot = buildDataSnapshot();
@@ -567,11 +586,30 @@ export const DataProvider = ({ children }) => {
         setSiteDataSync({ status: 'error', message: res.error || '同步失败。' });
         return res;
       }
-      markSiteDataSynced(snapshot);
-      autoSyncBaselineRef.current = snapshot;
+      applyPreparedSiteData(res.preparedContent);
+      let nextSnapshot = snapshot;
+      if (res.preparedContent) {
+        try {
+          const parsed = JSON.parse(res.preparedContent);
+          nextSnapshot = JSON.stringify({
+            projects: parsed.projects,
+            blogPosts: parsed.blogPosts,
+            aboutInfo: parsed.aboutInfo,
+            siteNotice: parsed.siteNotice,
+            language: parsed.language,
+          });
+        } catch {
+          nextSnapshot = snapshot;
+        }
+      }
+      markSiteDataSynced(nextSnapshot);
+      autoSyncBaselineRef.current = nextSnapshot;
+      const imageHint = res.uploadedImages
+        ? `（${res.uploadedImages} 张配图已上传至 public/uploads）`
+        : '';
       setSiteDataSync({
         status: 'synced',
-        message: '已同步，访客刷新后即可看到最新内容。',
+        message: `已同步，访客刷新后即可看到最新内容。${imageHint}`,
         commitUrl: res.commitUrl || '',
         lastSyncedAt: new Date().toISOString(),
       });
@@ -580,7 +618,7 @@ export const DataProvider = ({ children }) => {
       setSiteDataSync({ status: 'error', message: '同步失败，请检查网络。' });
       return { ok: false };
     }
-  }, [exportData, buildDataSnapshot]);
+  }, [exportData, buildDataSnapshot, applyPreparedSiteData]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -657,10 +695,26 @@ export const DataProvider = ({ children }) => {
 
     scheduleSiteDataSync(exportData, snapshot, (status) => {
       setSiteDataSync(status);
-      if (status.status === 'synced') autoSyncBaselineRef.current = snapshot;
+      if (status.status === 'synced') {
+        applyPreparedSiteData(status.preparedContent);
+        try {
+          const parsed = status.preparedContent ? JSON.parse(status.preparedContent) : null;
+          autoSyncBaselineRef.current = parsed
+            ? JSON.stringify({
+              projects: parsed.projects,
+              blogPosts: parsed.blogPosts,
+              aboutInfo: parsed.aboutInfo,
+              siteNotice: parsed.siteNotice,
+              language: parsed.language,
+            })
+            : snapshot;
+        } catch {
+          autoSyncBaselineRef.current = snapshot;
+        }
+      }
     });
     return undefined;
-  }, [isAdmin, buildDataSnapshot, exportData]);
+  }, [isAdmin, buildDataSnapshot, exportData, applyPreparedSiteData]);
 
   const importData = (json) => {
     try {

@@ -804,7 +804,8 @@ const DataBackup = () => {
           </button>
         </div>
         <p className="text-sm text-text-muted">
-          后台保存后会自动同步到 GitHub（约 2 秒延迟），访客刷新页面即可看到最新内容，无需手动发布 JSON 或等待整站重新构建。
+          后台保存后会自动同步到 GitHub（约 2 秒延迟），访客刷新页面即可看到最新内容。
+          博客内嵌配图会在同步时自动上传到 public/uploads 并转为 URL（避免 JSON 过大导致同步损坏）。
           Export / Import 仅用于本地备份恢复。
         </p>
         <div className="bg-white p-6 rounded-2xl border border-border-soft space-y-4">

@@ -1,4 +1,5 @@
 import { getGitHubPublishConfig, getStoredGitHubToken, publishJsonToRepo } from './githubPublish';
+import { prepareSiteDataForPublish } from './siteDataPrepare';
 
 const DEBOUNCE_MS = 2000;
 const MIN_SYNC_INTERVAL_MS = 5000;
@@ -28,13 +29,22 @@ export const syncSiteDataToGitHub = async (content) => {
   lastSyncAttemptAt = now;
 
   syncInFlight = (async () => {
+    const prepared = await prepareSiteDataForPublish(content, config);
+    if (!prepared.ok) return prepared;
+
     for (let attempt = 0; attempt < 4; attempt++) {
       const res = await publishJsonToRepo({
         ...config,
-        content,
+        content: prepared.content,
         skipAuthCheck: attempt > 0,
       });
-      if (res.ok) return res;
+      if (res.ok) {
+        return {
+          ...res,
+          uploadedImages: prepared.uploadedImages || 0,
+          preparedContent: prepared.content,
+        };
+      }
       if (res.status === 409 && attempt < 3) continue;
       return res;
     }
@@ -75,12 +85,31 @@ export const scheduleSiteDataSync = (getContent, dataSnapshot, onStatus) => {
         onStatus?.({ status: 'error', message: res.error || '同步失败。' });
         return;
       }
-      lastSyncedDataSnapshot = dataSnapshot;
+      if (res.preparedContent) {
+        try {
+          const parsed = JSON.parse(res.preparedContent);
+          lastSyncedDataSnapshot = JSON.stringify({
+            projects: parsed.projects,
+            blogPosts: parsed.blogPosts,
+            aboutInfo: parsed.aboutInfo,
+            siteNotice: parsed.siteNotice,
+            language: parsed.language,
+          });
+        } catch {
+          lastSyncedDataSnapshot = dataSnapshot;
+        }
+      } else {
+        lastSyncedDataSnapshot = dataSnapshot;
+      }
+      const imageHint = res.uploadedImages
+        ? `（${res.uploadedImages} 张配图已上传至 public/uploads）`
+        : '';
       onStatus?.({
         status: 'synced',
-        message: '已自动同步，访客刷新后即可看到最新内容。',
+        message: `已自动同步，访客刷新后即可看到最新内容。${imageHint}`,
         commitUrl: res.commitUrl || '',
         lastSyncedAt: new Date().toISOString(),
+        preparedContent: res.preparedContent || '',
       });
     } catch {
       onStatus?.({ status: 'error', message: '同步失败，请检查网络。' });
