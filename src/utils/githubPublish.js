@@ -31,12 +31,29 @@ export const normalizeGitHubToken = (raw) => {
   return token.replace(/\s+/g, '');
 };
 
-/** Token only in sessionStorage for current tab session (manual input). */
-export const getStoredGitHubToken = () => normalizeGitHubToken(
-  import.meta.env.VITE_GITHUB_ANALYTICS_TOKEN ||
-  (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(GH_TOKEN_SESSION) : '') ||
-  ''
-);
+/** Manual session token takes priority over build-time env token. */
+export const getStoredGitHubToken = () => {
+  const sessionToken = typeof sessionStorage !== 'undefined'
+    ? normalizeGitHubToken(sessionStorage.getItem(GH_TOKEN_SESSION) || '')
+    : '';
+  if (sessionToken) return sessionToken;
+  return normalizeGitHubToken(import.meta.env.VITE_GITHUB_ANALYTICS_TOKEN || '');
+};
+
+export const validateGitHubTokenFormat = (token) => {
+  const normalized = normalizeGitHubToken(token);
+  if (!normalized) return { ok: false, error: '请先填写 GitHub Token。' };
+  if (!/^(github_pat_|ghp_|gho_|ghu_|ghs_|ghr_)/i.test(normalized)) {
+    return {
+      ok: false,
+      error: 'Token 格式不正确。请复制以 github_pat_ 开头的完整密钥（设置页里的名称 product_forge 不是 Token 本身）。',
+    };
+  }
+  if (normalized.length < 40) {
+    return { ok: false, error: 'Token 似乎不完整，请从 GitHub 重新完整复制。' };
+  }
+  return { ok: true, token: normalized };
+};
 
 export const clearGitHubTokenSession = () => {
   if (typeof sessionStorage !== 'undefined') {
@@ -78,11 +95,20 @@ export const getGitHubPublishConfig = () => ({
   ).trim(),
 });
 
-export const getGitHubHeaders = (token) => ({
+export const getGitHubHeaders = (token, scheme = 'Bearer') => ({
   Accept: 'application/vnd.github+json',
-  Authorization: `Bearer ${normalizeGitHubToken(token)}`,
+  Authorization: `${scheme} ${normalizeGitHubToken(token)}`,
   'X-GitHub-Api-Version': '2022-11-28',
 });
+
+const fetchGitHub = async (url, token) => {
+  const normalized = normalizeGitHubToken(token);
+  let res = await fetch(url, { headers: getGitHubHeaders(normalized, 'Bearer') });
+  if (res.status === 401) {
+    res = await fetch(url, { headers: getGitHubHeaders(normalized, 'token') });
+  }
+  return res;
+};
 
 const parseGitHubError = async (res) => {
   const text = await res.text();
@@ -94,10 +120,13 @@ const parseGitHubError = async (res) => {
   }
 };
 
-export const formatGitHubApiError = (status, message) => {
+export const formatGitHubApiError = (status, message, { step } = {}) => {
   const detail = redactSecrets((message || '').toString());
   if (status === 401) {
-    return 'Token 无效或已过期。请在 GitHub → Settings → Developer settings 重新生成 Fine-grained PAT，勾选 productforge 仓库的 Contents: Read and write 权限，并确认 Token 未过期。';
+    const stepHint = step === 'repo'
+      ? '请确认 Token 已授权 productforge 仓库，且 Contents 为 Read and write。'
+      : '请确认复制的是完整密钥（github_pat_...），不是设置页里的 Token 名称。';
+    return `GitHub 认证失败（401）。Token 显示未过期也可能失败：① 复制了旧 Token 或复制不完整；② 粘贴了 Token 名称而非密钥；③ 重新生成 Token 后仍在使用旧字符串。${stepHint}`;
   }
   if (status === 403) {
     if (/resource not accessible|permission/i.test(detail)) {
@@ -106,41 +135,76 @@ export const formatGitHubApiError = (status, message) => {
     return `GitHub 拒绝访问 (403)：${detail}`;
   }
   if (status === 404) {
-    return `仓库或文件路径不存在 (404)。请检查 Owner、Repo、Branch、File Path 是否正确。`;
+    if (step === 'contents') {
+      return '仓库可访问，但目标文件路径不存在（404）。请检查 Branch / File Path，或继续尝试同步（首次会自动创建）。';
+    }
+    return `仓库或文件路径不存在 (404)。请检查 Owner、Repo、Branch、File Path 是否正确，以及 Token 的 Repository access 是否包含该仓库。`;
   }
   return redactSecrets(`${status} ${detail}`.trim());
 };
 
-/** Quick auth + repo access check before publishing. */
-export const checkGitHubCredentials = async ({ token, owner, repo }) => {
-  const normalized = normalizeGitHubToken(token);
-  if (!normalized) return { ok: false, error: '请先填写 GitHub Token。' };
+const buildContentsUrl = ({ owner, repo, branch, path }) => {
+  const ownerName = (owner || '').trim();
+  const repoName = (repo || '').trim();
+  const branchName = (branch || 'main').trim();
+  const filePath = (path || 'src/site-data.json').trim();
+  const apiPath = filePath.split('/').map(encodeURIComponent).join('/');
+  return `${GITHUB_API}/repos/${encodeURIComponent(ownerName)}/${encodeURIComponent(repoName)}/contents/${apiPath}?ref=${encodeURIComponent(branchName)}`;
+};
 
+/** Validate token via Contents API (same endpoint used for sync). */
+export const checkGitHubCredentials = async ({
+  token, owner, repo, branch = 'main', path = 'src/site-data.json',
+}) => {
+  const format = validateGitHubTokenFormat(token);
+  if (!format.ok) return format;
+
+  const normalized = format.token;
   const ownerName = (owner || '').trim();
   const repoName = (repo || '').trim();
   if (!ownerName || !repoName) {
     return { ok: false, error: '请填写 Owner 和 Repo。' };
   }
 
-  const headers = getGitHubHeaders(normalized);
+  const url = buildContentsUrl({ owner: ownerName, repo: repoName, branch, path });
+  const res = await fetchGitHub(url, normalized);
 
-  const userRes = await fetch(`${GITHUB_API}/user`, { headers });
-  if (!userRes.ok) {
-    const msg = await parseGitHubError(userRes);
-    return { ok: false, error: formatGitHubApiError(userRes.status, msg) };
-  }
-  const user = await userRes.json();
-
-  const repoRes = await fetch(
-    `${GITHUB_API}/repos/${encodeURIComponent(ownerName)}/${encodeURIComponent(repoName)}`,
-    { headers }
-  );
-  if (!repoRes.ok) {
-    const msg = await parseGitHubError(repoRes);
-    return { ok: false, error: formatGitHubApiError(repoRes.status, msg) };
+  if (res.status === 404) {
+    return {
+      ok: true,
+      login: ownerName,
+      fileExists: false,
+      diagnostics: {
+        tokenLength: normalized.length,
+        tokenPrefix: `${normalized.slice(0, 16)}...`,
+        target: `${ownerName}/${repoName}@${branch}:${path}`,
+      },
+    };
   }
 
-  return { ok: true, login: user.login };
+  if (!res.ok) {
+    const msg = await parseGitHubError(res);
+    const baseError = formatGitHubApiError(res.status, msg, {
+      step: res.status === 404 ? 'contents' : 'repo',
+    });
+    return {
+      ok: false,
+      error: `${baseError}（HTTP ${res.status}，Token 长度 ${normalized.length}，目标 ${ownerName}/${repoName}）`,
+      status: res.status,
+      githubMessage: redactSecrets(msg),
+    };
+  }
+
+  return {
+    ok: true,
+    login: ownerName,
+    fileExists: true,
+    diagnostics: {
+      tokenLength: normalized.length,
+      tokenPrefix: `${normalized.slice(0, 16)}...`,
+      target: `${ownerName}/${repoName}@${branch}:${path}`,
+    },
+  };
 };
 
 const base64EncodeUtf8 = (str) => {
@@ -163,17 +227,20 @@ export const publishJsonToRepo = async ({
   if (!ownerName || !repoName) return { ok: false, error: '请填写 Owner 和 Repo。', status: 400 };
 
   if (!skipAuthCheck) {
-    const authCheck = await checkGitHubCredentials({ token: normalized, owner: ownerName, repo: repoName });
-    if (!authCheck.ok) return { ok: false, error: authCheck.error, status: 401 };
+    const authCheck = await checkGitHubCredentials({
+      token: normalized, owner: ownerName, repo: repoName, branch: b, path: p,
+    });
+    if (!authCheck.ok) {
+      return { ok: false, error: authCheck.error, status: authCheck.status || 401 };
+    }
   }
 
   const apiPath = p.split('/').map(encodeURIComponent).join('/');
   const repoUrl = `${GITHUB_API}/repos/${encodeURIComponent(ownerName)}/${encodeURIComponent(repoName)}`;
   const getUrl = `${repoUrl}/contents/${apiPath}?ref=${encodeURIComponent(b)}`;
-  const headers = getGitHubHeaders(normalized);
 
   let sha;
-  const getRes = await fetch(getUrl, { headers });
+  const getRes = await fetchGitHub(getUrl, normalized);
   if (getRes.ok) {
     const existing = await getRes.json();
     sha = existing?.sha;
@@ -192,7 +259,7 @@ export const publishJsonToRepo = async ({
 
   const putRes = await fetch(putUrl, {
     method: 'PUT',
-    headers: { ...headers, 'Content-Type': 'application/json' },
+    headers: { ...getGitHubHeaders(normalized), 'Content-Type': 'application/json' },
     body: JSON.stringify(putBody),
   });
 

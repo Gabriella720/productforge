@@ -738,8 +738,15 @@ const DataBackup = () => {
     setIsVerifying(true);
     setMessage('');
     try {
-      const res = await checkGitHubCredentials({ token, owner, repo });
-      setMessage(res.ok ? `Token 有效，已关联账号 ${res.login}，可访问 ${owner}/${repo}。` : res.error);
+      const branch = (ghBranch || '').trim() || 'main';
+      const path = (ghPath || '').trim() || 'src/site-data.json';
+      const res = await checkGitHubCredentials({ token, owner, repo, branch, path });
+      if (res.ok) {
+        const fileHint = res.fileExists ? '目标文件可读写' : '仓库已授权（目标文件尚不存在，同步时会自动创建）';
+        setMessage(`Token 有效，可访问 ${owner}/${repo}（${branch} / ${path}）。${fileHint}`);
+        return;
+      }
+      setMessage(res.error || '验证失败。');
     } catch {
       setMessage('验证失败，请检查网络连接。');
     } finally {
@@ -852,8 +859,9 @@ const DataBackup = () => {
               className="w-full px-4 py-2 bg-white border border-border-soft rounded-xl focus:ring-2 focus:ring-brand/10 focus:border-brand outline-none transition-all text-text-main"
               placeholder="ghp_... or github_pat_..."
             />
-            <div className="mt-2 text-[11px] text-text-muted font-medium">
-              每次使用前请手动粘贴 Token。Token 仅保存在当前浏览器标签页（sessionStorage），关闭标签页或退出登录后自动清除。请使用 Fine-grained PAT，仅授予 productforge 仓库 Contents: Read and write。
+            <div className="mt-2 text-[11px] text-text-muted font-medium space-y-1">
+              <p>每次使用前请手动粘贴 Token（以 github_pat_ 开头的完整字符串）。设置页里的名称（如 product_forge）不是 Token，密钥仅在生成时显示一次。</p>
+              <p>Token 仅保存在当前标签页，关闭标签页或退出登录后清除。Fine-grained PAT：Resource owner 选你的账号，Repository access 选 productforge，Permissions 勾选 Contents: Read and write（建议同时勾选 Metadata: Read）。</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
