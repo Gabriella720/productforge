@@ -2,8 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { translations } from '../translations';
 import siteData from '../site-data.json';
 import {
-  loadAllAnalytics,
-  refreshAnalyticsFromGitHub,
+  refreshAnalyticsSnapshot,
   queueVisitForSync,
   scheduleAnalyticsSync,
   createVisitRecord,
@@ -13,6 +12,8 @@ import {
   getCachedVisits,
   getPendingVisits,
   setPendingVisits,
+  onAnalyticsSyncComplete,
+  flushAnalyticsSync,
 } from '../utils/analyticsApi';
 import { resolveAnalyticsPath } from '../utils/analyticsPaths';
 import { detectContentLanguage } from '../utils/blogLocale';
@@ -314,8 +315,8 @@ export const DataProvider = ({ children }) => {
   const reloadAnalytics = useCallback(async () => {
     setAnalyticsLoading(true);
     try {
-      const data = await refreshAnalyticsFromGitHub();
-      setAnalytics((prev) => mergeVisits(data, prev));
+      const data = await refreshAnalyticsSnapshot();
+      setAnalytics(data);
     } finally {
       setAnalyticsLoading(false);
     }
@@ -339,16 +340,43 @@ export const DataProvider = ({ children }) => {
     (async () => {
       setAnalyticsLoading(true);
       try {
-        const data = await loadAllAnalytics();
+        const data = await refreshAnalyticsSnapshot();
         setAnalytics(data);
         await syncPendingVisits();
-        const refreshed = await loadAllAnalytics();
+        const refreshed = await refreshAnalyticsSnapshot();
         setAnalytics(refreshed);
       } finally {
         setAnalyticsLoading(false);
       }
     })();
   }, []);
+
+  useEffect(() => onAnalyticsSyncComplete((merged) => {
+    if (merged) setAnalytics(merged);
+  }), []);
+
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.hidden) {
+        flushAnalyticsSync();
+        return;
+      }
+      if (isAdmin) void reloadAnalytics();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [isAdmin, reloadAnalytics]);
+
+  useEffect(() => {
+    if (!isAdmin) return undefined;
+
+    const poll = () => {
+      void reloadAnalytics();
+    };
+    poll();
+    const intervalId = window.setInterval(poll, 30000);
+    return () => window.clearInterval(intervalId);
+  }, [isAdmin, reloadAnalytics]);
 
   useEffect(() => {
     try {

@@ -96,6 +96,29 @@ export const setCachedVisits = (visits) => {
   localStorage.setItem(CACHE_KEY, JSON.stringify(dedupeVisits(visits).slice(0, MAX_RECORDS)));
 };
 
+export const getAnalyticsRemoteUrl = (config = getAnalyticsConfig()) => {
+  const owner = (config?.owner || '').trim();
+  const repo = (config?.repo || '').trim();
+  const branch = (config?.branch || 'main').trim();
+  const path = (config?.path || 'public/analytics.json').trim();
+  if (!owner || !repo) return '';
+  return `https://raw.githubusercontent.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(branch)}/${path.split('/').map(encodeURIComponent).join('/')}`;
+};
+
+/** Latest committed analytics on the default branch (no token required). */
+export const fetchRemoteAnalytics = async (config = getAnalyticsConfig()) => {
+  const url = getAnalyticsRemoteUrl(config);
+  if (!url) return [];
+  try {
+    const res = await fetch(`${url}?t=${Date.now()}`, { cache: 'no-store' });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return normalizeVisits(data);
+  } catch {
+    return [];
+  }
+};
+
 export const fetchDeployedAnalytics = async () => {
   const base = import.meta.env.BASE_URL || '/';
   const url = `${base}analytics.json?t=${Date.now()}`;
@@ -142,33 +165,36 @@ const putRepoAnalytics = async (config, visits, sha) => {
 
 export const mergeVisits = (...lists) => dedupeVisits(lists.flat());
 
-export const loadAllAnalytics = async () => {
-  const [deployed, pending, cached] = await Promise.all([
-    fetchDeployedAnalytics(),
-    Promise.resolve(getPendingVisits()),
-    Promise.resolve(getCachedVisits()),
-  ]);
-  const merged = mergeVisits(deployed, cached, pending);
+const fetchAuthoritativeAnalytics = async (config = getAnalyticsConfig()) => {
+  const remote = await fetchRemoteAnalytics(config);
+  if (remote.length) return remote;
+
+  if (config.token) {
+    try {
+      const { visits } = await fetchRepoAnalytics(config);
+      if (visits.length) return visits;
+    } catch {
+      // fall through to deployed bundle
+    }
+  }
+
+  return fetchDeployedAnalytics();
+};
+
+/** Remote repo data + local pending uploads; cache is only an offline fallback. */
+export const refreshAnalyticsSnapshot = async () => {
+  const config = getAnalyticsConfig();
+  const pending = getPendingVisits();
+  const authoritative = await fetchAuthoritativeAnalytics(config);
+  let merged = mergeVisits(authoritative, pending);
+  if (!merged.length) merged = mergeVisits(getCachedVisits(), pending);
   setCachedVisits(merged);
   return merged;
 };
 
-export const refreshAnalyticsFromGitHub = async () => {
-  const config = getAnalyticsConfig();
-  if (!config.token) {
-    return loadAllAnalytics();
-  }
-  try {
-    const { visits } = await fetchRepoAnalytics(config);
-    const pending = getPendingVisits();
-    const cached = getCachedVisits();
-    const merged = mergeVisits(visits, cached, pending);
-    setCachedVisits(merged);
-    return merged;
-  } catch {
-    return loadAllAnalytics();
-  }
-};
+export const loadAllAnalytics = refreshAnalyticsSnapshot;
+
+export const refreshAnalyticsFromGitHub = refreshAnalyticsSnapshot;
 
 let syncInFlight = null;
 
@@ -184,7 +210,7 @@ export const syncPendingVisits = async () => {
     for (let attempt = 0; attempt < 4; attempt++) {
       try {
         const { visits: remote, sha } = await fetchRepoAnalytics(config);
-        const merged = mergeVisits(remote, getCachedVisits(), pending);
+        const merged = mergeVisits(remote, pending);
         const res = await putRepoAnalytics(config, merged, sha);
         if (res.ok) {
           setPendingVisits([]);
@@ -216,14 +242,45 @@ export const queueVisitForSync = (visit) => {
 };
 
 let syncTimer = null;
+const syncCompleteListeners = new Set();
 
-export const scheduleAnalyticsSync = (delayMs = 3000) => {
+export const onAnalyticsSyncComplete = (listener) => {
+  syncCompleteListeners.add(listener);
+  return () => syncCompleteListeners.delete(listener);
+};
+
+const notifyAnalyticsSyncComplete = async (result) => {
+  let merged = null;
+  try {
+    merged = await refreshAnalyticsSnapshot();
+  } catch {
+    merged = null;
+  }
+  syncCompleteListeners.forEach((listener) => {
+    try {
+      listener(merged, result);
+    } catch {
+      // ignore listener errors
+    }
+  });
+};
+
+export const scheduleAnalyticsSync = (delayMs = 1500) => {
   if (!isAnalyticsSyncConfigured()) return;
   if (syncTimer) window.clearTimeout(syncTimer);
   syncTimer = window.setTimeout(() => {
     syncTimer = null;
-    syncPendingVisits();
+    void syncPendingVisits().then((result) => notifyAnalyticsSyncComplete(result));
   }, delayMs);
+};
+
+export const flushAnalyticsSync = () => {
+  if (!isAnalyticsSyncConfigured()) return;
+  if (syncTimer) {
+    window.clearTimeout(syncTimer);
+    syncTimer = null;
+  }
+  void syncPendingVisits().then((result) => notifyAnalyticsSyncComplete(result));
 };
 
 const VISITOR_ID_KEY = 'analyticsVisitorId';
