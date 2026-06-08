@@ -135,8 +135,8 @@ const Admin = () => {
           <div className="flex items-center justify-between mb-12">
             <div className="space-y-1">
               <h1 className="text-3xl font-bold text-text-main">{t('admin.dashboard')}</h1>
-              {siteDataSync.status !== 'idle' && (
-                <div className={`text-xs font-semibold ${siteDataSync.status === 'error' || siteDataSync.status === 'needs_config' ? 'text-red-500' : 'text-text-muted'}`}>
+              {['pending', 'syncing', 'synced', 'error'].includes(siteDataSync.status) && (
+                <div className={`text-xs font-semibold ${siteDataSync.status === 'error' ? 'text-red-500' : 'text-text-muted'}`}>
                   {siteDataSync.message}
                   {siteDataSync.commitUrl && (
                     <a href={siteDataSync.commitUrl} target="_blank" rel="noreferrer" className="ml-2 text-brand hover:underline">

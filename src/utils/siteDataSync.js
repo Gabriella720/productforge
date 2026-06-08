@@ -70,10 +70,6 @@ export const scheduleSiteDataSync = (getContent, dataSnapshot, onStatus) => {
     if (dataSnapshot === lastSyncedDataSnapshot) return;
 
     if (!isSiteDataSyncConfigured()) {
-      onStatus?.({
-        status: 'needs_config',
-        message: '请在 Data Backup 手动填写 GitHub Token，之后保存即可自动同步。',
-      });
       return;
     }
 

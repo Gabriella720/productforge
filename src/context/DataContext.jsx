@@ -306,8 +306,10 @@ export const DataProvider = ({ children }) => {
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const analyticsLoadedRef = useRef(false);
   const [siteDataSync, setSiteDataSync] = useState({ status: 'idle', message: '', commitUrl: '', lastSyncedAt: '' });
+  const [adminHydrationReady, setAdminHydrationReady] = useState(false);
   const autoSyncBaselineRef = useRef(null);
   const lastAppliedRemoteAtRef = useRef(parseExportedAt(siteData));
+  const rebaselineAutoSyncRef = useRef(() => {});
 
   const reloadAnalytics = useCallback(async () => {
     setAnalyticsLoading(true);
@@ -547,7 +549,10 @@ export const DataProvider = ({ children }) => {
     if (remoteAt <= lastAppliedRemoteAtRef.current) return;
     applySiteDataPayload(remote);
     lastAppliedRemoteAtRef.current = remoteAt;
-  }, [applySiteDataPayload]);
+    if (isAdmin) {
+      window.setTimeout(() => rebaselineAutoSyncRef.current(), 0);
+    }
+  }, [applySiteDataPayload, isAdmin]);
 
   const exportData = useCallback(() => {
     const payload = {
@@ -565,6 +570,35 @@ export const DataProvider = ({ children }) => {
   const buildDataSnapshot = useCallback(() => JSON.stringify({
     projects, blogPosts, aboutInfo, siteNotice, language,
   }), [projects, blogPosts, aboutInfo, siteNotice, language]);
+
+  const rebaselineAutoSync = useCallback(() => {
+    const snapshot = buildDataSnapshot();
+    autoSyncBaselineRef.current = snapshot;
+    markSiteDataSynced(snapshot);
+  }, [buildDataSnapshot]);
+
+  useEffect(() => {
+    rebaselineAutoSyncRef.current = rebaselineAutoSync;
+  }, [rebaselineAutoSync]);
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setAdminHydrationReady(false);
+      autoSyncBaselineRef.current = null;
+      cancelScheduledSiteDataSync();
+      setSiteDataSync({ status: 'idle', message: '', commitUrl: '', lastSyncedAt: '' });
+      return undefined;
+    }
+
+    setAdminHydrationReady(false);
+    setSiteDataSync({ status: 'idle', message: '', commitUrl: '', lastSyncedAt: '' });
+    const timer = window.setTimeout(() => {
+      rebaselineAutoSync();
+      setAdminHydrationReady(true);
+    }, 4000);
+
+    return () => window.clearTimeout(timer);
+  }, [isAdmin, rebaselineAutoSync]);
 
   const applyPreparedSiteData = useCallback((preparedContent) => {
     if (!preparedContent) return;
@@ -679,16 +713,11 @@ export const DataProvider = ({ children }) => {
   }, [isAdmin, applyRemoteIfNewer]);
 
   useEffect(() => {
-    if (!isAdmin) {
-      autoSyncBaselineRef.current = null;
-      cancelScheduledSiteDataSync();
-      return undefined;
-    }
+    if (!isAdmin || !adminHydrationReady) return undefined;
 
     const snapshot = buildDataSnapshot();
     if (autoSyncBaselineRef.current === null) {
-      autoSyncBaselineRef.current = snapshot;
-      if (isSiteDataSyncConfigured()) markSiteDataSynced(snapshot);
+      rebaselineAutoSync();
       return undefined;
     }
     if (autoSyncBaselineRef.current === snapshot) return undefined;
@@ -714,7 +743,7 @@ export const DataProvider = ({ children }) => {
       }
     });
     return undefined;
-  }, [isAdmin, buildDataSnapshot, exportData, applyPreparedSiteData]);
+  }, [isAdmin, adminHydrationReady, buildDataSnapshot, exportData, applyPreparedSiteData, rebaselineAutoSync]);
 
   const importData = (json) => {
     try {
