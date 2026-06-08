@@ -16,6 +16,12 @@ import {
   isMarkdownFormat,
 } from '../utils/markdown';
 import { applyBlogLocalePatch, buildBlogPublishPayload } from '../utils/blogEditor';
+import {
+  checkGitHubCredentials,
+  detectGitHubPagesRepo,
+  normalizeGitHubToken,
+  saveGitHubToken,
+} from '../utils/githubPublish';
 import BlogContent from '../components/BlogContent';
 import SortableList from '../components/SortableList';
 import { sortByOrder } from '../utils/sortOrder';
@@ -50,60 +56,6 @@ import 'tinymce/skins/ui/oxide/skin.min.css';
 import 'tinymce/skins/ui/oxide/content.min.css';
 import 'tinymce/skins/content/default/content.min.css';
 
-const base64EncodeUtf8 = (str) => {
-  const bytes = new TextEncoder().encode(str);
-  let binary = '';
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-  return btoa(binary);
-};
-
-const publishJsonToRepo = async ({ token, owner, repo, branch, path, content }) => {
-  const b = (branch || 'main').toString();
-  const p = (path || 'src/site-data.json').toString();
-  const apiPath = p.split('/').map(encodeURIComponent).join('/');
-  const repoUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
-  const getUrl = `${repoUrl}/contents/${apiPath}?ref=${encodeURIComponent(b)}`;
-
-  let sha;
-  const getRes = await fetch(getUrl, {
-    headers: {
-      Accept: 'application/vnd.github+json',
-      Authorization: `Bearer ${token}`,
-      'X-GitHub-Api-Version': '2022-11-28'
-    }
-  });
-  if (getRes.ok) {
-    const existing = await getRes.json();
-    sha = existing?.sha;
-  }
-
-  const putUrl = `${repoUrl}/contents/${apiPath}`;
-  const putBody = {
-    message: `Update site data (${new Date().toISOString()})`,
-    content: base64EncodeUtf8(content),
-    branch: b
-  };
-  if (sha) putBody.sha = sha;
-
-  const putRes = await fetch(putUrl, {
-    method: 'PUT',
-    headers: {
-      Accept: 'application/vnd.github+json',
-      Authorization: `Bearer ${token}`,
-      'X-GitHub-Api-Version': '2022-11-28',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(putBody)
-  });
-  if (!putRes.ok) {
-    const text = await putRes.text();
-    return { ok: false, error: `${putRes.status} ${text}` };
-  }
-
-  const result = await putRes.json();
-  return { ok: true, commitUrl: result?.commit?.html_url || '' };
-};
-
 const Admin = () => {
   const { 
     projects, addProject, updateProject, deleteProject, reorderProjects,
@@ -113,17 +65,12 @@ const Admin = () => {
     analytics,
     analyticsLoading,
     reloadAnalytics,
-    exportData,
+    siteDataSync,
     logout 
   } = useData();
   const t = useTranslation();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('projects');
-  const [publishState, setPublishState] = useState('idle');
-  const [publishInfo, setPublishInfo] = useState('');
-  const initialSnapshotRef = useRef(null);
-  const lastPublishedSnapshotRef = useRef(null);
-  const publishTimerRef = useRef(null);
   
   // State for single-post editing view
   const [blogView, setBlogView] = useState('list'); // 'list' or 'edit'
@@ -170,77 +117,11 @@ const Admin = () => {
     const ownerSaved = (localStorage.getItem('ghOwner') || '').trim();
     const repoSaved = (localStorage.getItem('ghRepo') || '').trim();
     if (ownerSaved && repoSaved) return;
-    try {
-      const host = window.location.host;
-      const path = window.location.pathname || '/';
-      if (!host.endsWith('github.io')) return;
-      const owner = host.replace(/\.github\.io$/, '');
-      const repo = path.split('/').filter(Boolean)[0] || '';
-      if (!ownerSaved && owner) localStorage.setItem('ghOwner', owner);
-      if (!repoSaved && repo) localStorage.setItem('ghRepo', repo);
-    } catch {
-      // ignore
-    }
+    const detected = detectGitHubPagesRepo();
+    if (!detected) return;
+    if (!ownerSaved && detected.owner) localStorage.setItem('ghOwner', detected.owner);
+    if (!repoSaved && detected.repo) localStorage.setItem('ghRepo', detected.repo);
   }, []);
-
-  useEffect(() => {
-    if (initialSnapshotRef.current) return;
-    try {
-      initialSnapshotRef.current = JSON.stringify({ projects, blogPosts, aboutInfo, siteNotice, language: localStorage.getItem('language') || 'en' });
-    } catch {
-      initialSnapshotRef.current = '';
-    }
-  }, [projects, blogPosts, aboutInfo, siteNotice]);
-
-  useEffect(() => {
-    if (!exportData) return;
-    const token = (sessionStorage.getItem('ghToken') || '').trim();
-    const owner = (localStorage.getItem('ghOwner') || '').trim();
-    const repo = (localStorage.getItem('ghRepo') || '').trim();
-    const branch = (localStorage.getItem('ghBranch') || 'main').trim();
-    const path = (localStorage.getItem('ghPath') || 'src/site-data.json').trim();
-
-    let snapshot = '';
-    try {
-      snapshot = JSON.stringify({ projects, blogPosts, aboutInfo, siteNotice, language: localStorage.getItem('language') || 'en' });
-    } catch {
-      snapshot = '';
-    }
-
-    if (initialSnapshotRef.current === snapshot) return;
-    if (lastPublishedSnapshotRef.current === snapshot) return;
-
-    if (!token || !owner || !repo) {
-      setPublishState('error');
-      setPublishInfo('Missing GitHub token or repo info. Set it in Data Backup.');
-      return;
-    }
-
-    if (publishTimerRef.current) window.clearTimeout(publishTimerRef.current);
-    publishTimerRef.current = window.setTimeout(async () => {
-      setPublishState('publishing');
-      setPublishInfo('');
-      try {
-        const content = exportData();
-        const res = await publishJsonToRepo({ token, owner, repo, branch, path, content });
-        if (!res.ok) {
-          setPublishState('error');
-          setPublishInfo(res.error || 'publish_failed');
-          return;
-        }
-        lastPublishedSnapshotRef.current = snapshot;
-        setPublishState('published');
-        setPublishInfo(res.commitUrl || '');
-      } catch {
-        setPublishState('error');
-        setPublishInfo('publish_failed');
-      }
-    }, 1200);
-
-    return () => {
-      if (publishTimerRef.current) window.clearTimeout(publishTimerRef.current);
-    };
-  }, [projects, blogPosts, aboutInfo, siteNotice, exportData]);
 
   return (
     <div className="max-w-6xl mx-auto px-4 pt-12 pb-24">
@@ -254,11 +135,14 @@ const Admin = () => {
           <div className="flex items-center justify-between mb-12">
             <div className="space-y-1">
               <h1 className="text-3xl font-bold text-text-main">{t('admin.dashboard')}</h1>
-              {publishState !== 'idle' && (
-                <div className="text-xs text-text-muted font-semibold">
-                  {publishState === 'publishing' && 'Publishing to GitHub...'}
-                  {publishState === 'published' && (publishInfo ? `Published: ${publishInfo}` : 'Published to GitHub')}
-                  {publishState === 'error' && `Publish failed: ${publishInfo || ''}`}
+              {siteDataSync.status !== 'idle' && (
+                <div className={`text-xs font-semibold ${siteDataSync.status === 'error' || siteDataSync.status === 'needs_config' ? 'text-red-500' : 'text-text-muted'}`}>
+                  {siteDataSync.message}
+                  {siteDataSync.commitUrl && (
+                    <a href={siteDataSync.commitUrl} target="_blank" rel="noreferrer" className="ml-2 text-brand hover:underline">
+                      查看提交
+                    </a>
+                  )}
                 </div>
               )}
             </div>
@@ -772,30 +656,26 @@ const StatCard = ({ icon, label, value, color }) => {
 };
 
 const DataBackup = () => {
-  const { exportData, importData } = useData();
+  const { exportData, importData, manualSyncSiteData, siteDataSync } = useData();
   const [message, setMessage] = useState('');
   const fileInputRef = useRef(null);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [ghToken, setGhToken] = useState(() => sessionStorage.getItem('ghToken') || '');
-  const [ghOwner, setGhOwner] = useState(() => localStorage.getItem('ghOwner') || '');
-  const [ghRepo, setGhRepo] = useState(() => localStorage.getItem('ghRepo') || '');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [ghToken, setGhToken] = useState(() => {
+    if (typeof sessionStorage === 'undefined') return '';
+    return sessionStorage.getItem('ghToken') || '';
+  });
+  const [ghOwner, setGhOwner] = useState(() => localStorage.getItem('ghOwner') || 'Gabriella720');
+  const [ghRepo, setGhRepo] = useState(() => localStorage.getItem('ghRepo') || 'productforge');
   const [ghBranch, setGhBranch] = useState(() => localStorage.getItem('ghBranch') || 'main');
   const [ghPath, setGhPath] = useState(() => localStorage.getItem('ghPath') || 'src/site-data.json');
 
   useEffect(() => {
     if (ghOwner && ghRepo) return;
-    try {
-      const host = window.location.host;
-      const path = window.location.pathname || '/';
-      if (host.endsWith('github.io')) {
-        const owner = host.replace(/\.github\.io$/, '');
-        const repo = path.split('/').filter(Boolean)[0] || '';
-        if (!ghOwner) setGhOwner(owner);
-        if (!ghRepo) setGhRepo(repo);
-      }
-    } catch {
-      // ignore
-    }
+    const detected = detectGitHubPagesRepo();
+    if (!detected) return;
+    if (!ghOwner) setGhOwner(detected.owner);
+    if (!ghRepo) setGhRepo(detected.repo);
   }, [ghOwner, ghRepo]);
 
   useEffect(() => {
@@ -837,36 +717,53 @@ const DataBackup = () => {
     reader.readAsText(file);
   };
 
-  const publishToGitHub = async () => {
-    const token = (ghToken || '').trim();
+  const persistToken = () => {
+    const token = saveGitHubToken(ghToken);
+    if (token !== ghToken) setGhToken(token);
+    return token;
+  };
+
+  const verifyToken = async () => {
+    const token = persistToken();
     const owner = (ghOwner || '').trim();
     const repo = (ghRepo || '').trim();
-    const branch = (ghBranch || '').trim() || 'main';
-    const path = (ghPath || '').trim() || 'src/site-data.json';
-
     if (!token) {
-      setMessage('Missing GitHub token.');
+      setMessage('请先填写 GitHub Token。');
       return;
     }
     if (!owner || !repo) {
-      setMessage('Missing owner/repo.');
+      setMessage('请填写 Owner 和 Repo。');
       return;
     }
+    setIsVerifying(true);
+    setMessage('');
+    try {
+      const res = await checkGitHubCredentials({ token, owner, repo });
+      setMessage(res.ok ? `Token 有效，已关联账号 ${res.login}，可访问 ${owner}/${repo}。` : res.error);
+    } catch {
+      setMessage('验证失败，请检查网络连接。');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
 
-    sessionStorage.setItem('ghToken', token);
+  const publishToGitHub = async () => {
+    persistToken();
+    if (!normalizeGitHubToken(ghToken)) {
+      setMessage('请先填写 GitHub Token。');
+      return;
+    }
     setIsPublishing(true);
     setMessage('');
-
     try {
-      const content = exportData();
-      const res = await publishJsonToRepo({ token, owner, repo, branch, path, content });
-      if (!res.ok) {
-        setMessage(`Publish failed: ${res.error || ''}`.slice(0, 220));
+      const res = await manualSyncSiteData();
+      if (!res?.ok) {
+        setMessage(res?.error || '同步失败。');
         return;
       }
-      setMessage(res.commitUrl ? `Published. Commit: ${res.commitUrl}` : 'Published to GitHub successfully.');
+      setMessage(res.commitUrl ? `已同步。Commit: ${res.commitUrl}` : '已成功同步到 GitHub。');
     } catch {
-      setMessage('Publish failed due to network or permission error.');
+      setMessage('同步失败，请检查网络或 Token 权限。');
     } finally {
       setIsPublishing(false);
     }
@@ -900,11 +797,11 @@ const DataBackup = () => {
           </button>
         </div>
         <p className="text-sm text-text-muted">
-          Export 会下载当前浏览器本地的数据（项目、博客、关于我、语言）。Import 会覆盖当前浏览器的对应数据。
-          图片建议使用公共 URL 或将文件放入仓库的 public/uploads 并使用 /productforge/uploads/文件名 的路径。
+          后台保存后会自动同步到 GitHub（约 2 秒延迟），访客刷新页面即可看到最新内容，无需手动发布 JSON 或等待整站重新构建。
+          Export / Import 仅用于本地备份恢复。
         </p>
         <div className="bg-white p-6 rounded-2xl border border-border-soft space-y-4">
-          <div className="text-sm font-bold uppercase tracking-widest text-text-muted">Publish To GitHub</div>
+          <div className="text-sm font-bold uppercase tracking-widest text-text-muted">自动同步到 GitHub（一次配置）</div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-text-main mb-2">Owner</label>
@@ -946,22 +843,35 @@ const DataBackup = () => {
           <div>
             <label className="block text-sm font-semibold text-text-main mb-2">GitHub Token</label>
             <input
+              type="password"
+              autoComplete="off"
+              spellCheck={false}
               value={ghToken}
               onChange={e => setGhToken(e.target.value)}
+              onBlur={persistToken}
               className="w-full px-4 py-2 bg-white border border-border-soft rounded-xl focus:ring-2 focus:ring-brand/10 focus:border-brand outline-none transition-all text-text-main"
               placeholder="ghp_... or github_pat_..."
             />
             <div className="mt-2 text-[11px] text-text-muted font-medium">
-              Token 仅保存在当前浏览器会话（sessionStorage），建议使用 Fine-grained token，仅授予该仓库 Contents: Read and write。
+              每次使用前请手动粘贴 Token。Token 仅保存在当前浏览器标签页（sessionStorage），关闭标签页或退出登录后自动清除。请使用 Fine-grained PAT，仅授予 productforge 仓库 Contents: Read and write。
             </div>
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-wrap items-center gap-3">
             <button
+              type="button"
+              onClick={verifyToken}
+              disabled={isVerifying || isPublishing}
+              className="px-6 py-3 border border-brand text-brand rounded-xl font-semibold hover:bg-brand/5 transition-all disabled:opacity-60"
+            >
+              {isVerifying ? '验证中...' : '验证 Token'}
+            </button>
+            <button
+              type="button"
               onClick={publishToGitHub}
-              disabled={isPublishing}
+              disabled={isPublishing || isVerifying}
               className="px-6 py-3 bg-brand text-white rounded-xl font-semibold hover:bg-brand-hover transition-all disabled:opacity-60"
             >
-              {isPublishing ? 'Publishing...' : 'Publish JSON to Repo'}
+              {isPublishing ? '同步中...' : '立即同步'}
             </button>
           </div>
         </div>

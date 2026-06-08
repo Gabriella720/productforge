@@ -1,3 +1,5 @@
+import { getGitHubHeaders, getStoredGitHubToken } from './githubPublish';
+
 const PENDING_KEY = 'analyticsPendingSync';
 const CACHE_KEY = 'analyticsCache';
 const MAX_RECORDS = 10000;
@@ -10,11 +12,7 @@ const base64EncodeUtf8 = (str) => {
 };
 
 export const getAnalyticsConfig = () => {
-  const token = (
-    import.meta.env.VITE_GITHUB_ANALYTICS_TOKEN ||
-    sessionStorage.getItem('ghToken') ||
-    ''
-  ).trim();
+  const token = getStoredGitHubToken();
   const owner = (
     import.meta.env.VITE_GITHUB_ANALYTICS_OWNER ||
     localStorage.getItem('ghOwner') ||
@@ -116,13 +114,7 @@ const fetchRepoAnalytics = async (config) => {
   if (!token) return { visits: [], sha: null };
   const apiPath = path.split('/').map(encodeURIComponent).join('/');
   const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${apiPath}?ref=${encodeURIComponent(branch)}`;
-  const res = await fetch(url, {
-    headers: {
-      Accept: 'application/vnd.github+json',
-      Authorization: `Bearer ${token}`,
-      'X-GitHub-Api-Version': '2022-11-28',
-    },
-  });
+  const res = await fetch(url, { headers: getGitHubHeaders(token) });
   if (res.status === 404) return { visits: [], sha: null };
   if (!res.ok) throw new Error(`github_fetch_${res.status}`);
   const json = await res.json();
@@ -142,12 +134,7 @@ const putRepoAnalytics = async (config, visits, sha) => {
   if (sha) body.sha = sha;
   const res = await fetch(url, {
     method: 'PUT',
-    headers: {
-      Accept: 'application/vnd.github+json',
-      Authorization: `Bearer ${token}`,
-      'X-GitHub-Api-Version': '2022-11-28',
-      'Content-Type': 'application/json',
-    },
+    headers: { ...getGitHubHeaders(token), 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
   return res;

@@ -18,6 +18,15 @@ import { resolveAnalyticsPath } from '../utils/analyticsPaths';
 import { detectContentLanguage } from '../utils/blogLocale';
 import { clearBlogLocaleCache } from '../utils/blogEditor';
 import { ensureOrderFields, reorderArray, sortByOrder, preserveOrder } from '../utils/sortOrder';
+import { clearGitHubTokenSession } from '../utils/githubPublish';
+import { fetchRemoteSiteData, parseExportedAt } from '../utils/siteDataRemote';
+import {
+  cancelScheduledSiteDataSync,
+  markSiteDataSynced,
+  scheduleSiteDataSync,
+  syncSiteDataToGitHub,
+  isSiteDataSyncConfigured,
+} from '../utils/siteDataSync';
 
 const normalizeProjectTags = (tags) =>
   (Array.isArray(tags) ? tags : []).map((t) => String(t).trim()).filter(Boolean);
@@ -287,6 +296,9 @@ export const DataProvider = ({ children }) => {
   const [analytics, setAnalytics] = useState(() => getCachedVisits());
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const analyticsLoadedRef = useRef(false);
+  const [siteDataSync, setSiteDataSync] = useState({ status: 'idle', message: '', commitUrl: '', lastSyncedAt: '' });
+  const autoSyncBaselineRef = useRef(null);
+  const lastAppliedRemoteAtRef = useRef(parseExportedAt(siteData));
 
   const reloadAnalytics = useCallback(async () => {
     setAnalyticsLoading(true);
@@ -349,6 +361,7 @@ export const DataProvider = ({ children }) => {
 
   useEffect(() => {
     localStorage.setItem('isAdmin', isAdmin);
+    if (!isAdmin) clearGitHubTokenSession();
   }, [isAdmin]);
 
   useEffect(() => {
@@ -364,14 +377,13 @@ export const DataProvider = ({ children }) => {
     if (typeof parsed.language === 'string') setLanguage(parsed.language);
   }, [isAdmin]);
   const login = (password) => {
-    if (password === 'admin123') {
-      setIsAdmin(true);
-      return true;
-    }
-    return false;
+    if (password !== 'admin123') return false;
+    setIsAdmin(true);
+    return true;
   };
 
   const logout = () => {
+    clearGitHubTokenSession();
     setIsAdmin(false);
   };
 
@@ -504,7 +516,31 @@ export const DataProvider = ({ children }) => {
     });
   }, [pushVisit]);
 
-  const exportData = () => {
+  const applySiteDataPayload = useCallback((data) => {
+    if (!data || typeof data !== 'object') return false;
+    if (data.projects) {
+      const arr = Array.isArray(data.projects) ? data.projects : [];
+      setProjects(ensureOrderFields(arr.map(normalizeProject)));
+    }
+    if (data.blogPosts) {
+      const arr = Array.isArray(data.blogPosts) ? data.blogPosts : [];
+      setBlogPosts(ensureOrderFields(arr.map(normalizeBlogPost)));
+    }
+    if (data.aboutInfo) setAboutInfo(normalizeAboutInfo(data.aboutInfo));
+    if (data.siteNotice) setSiteNotice(normalizeSiteNotice(data.siteNotice));
+    if (data.language) setLanguage(data.language);
+    return true;
+  }, []);
+
+  const applyRemoteIfNewer = useCallback((remote) => {
+    if (!remote) return;
+    const remoteAt = parseExportedAt(remote);
+    if (remoteAt <= lastAppliedRemoteAtRef.current) return;
+    applySiteDataPayload(remote);
+    lastAppliedRemoteAtRef.current = remoteAt;
+  }, [applySiteDataPayload]);
+
+  const exportData = useCallback(() => {
     const payload = {
       version: 1,
       exportedAt: new Date().toISOString(),
@@ -515,7 +551,36 @@ export const DataProvider = ({ children }) => {
       language
     };
     return JSON.stringify(payload, null, 2);
-  };
+  }, [projects, blogPosts, aboutInfo, siteNotice, language]);
+
+  const buildDataSnapshot = useCallback(() => JSON.stringify({
+    projects, blogPosts, aboutInfo, siteNotice, language,
+  }), [projects, blogPosts, aboutInfo, siteNotice, language]);
+
+  const manualSyncSiteData = useCallback(async () => {
+    const content = exportData();
+    const snapshot = buildDataSnapshot();
+    setSiteDataSync({ status: 'syncing', message: '正在同步到 GitHub…' });
+    try {
+      const res = await syncSiteDataToGitHub(content);
+      if (!res.ok) {
+        setSiteDataSync({ status: 'error', message: res.error || '同步失败。' });
+        return res;
+      }
+      markSiteDataSynced(snapshot);
+      autoSyncBaselineRef.current = snapshot;
+      setSiteDataSync({
+        status: 'synced',
+        message: '已同步，访客刷新后即可看到最新内容。',
+        commitUrl: res.commitUrl || '',
+        lastSyncedAt: new Date().toISOString(),
+      });
+      return res;
+    } catch {
+      setSiteDataSync({ status: 'error', message: '同步失败，请检查网络。' });
+      return { ok: false };
+    }
+  }, [exportData, buildDataSnapshot]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -535,21 +600,72 @@ export const DataProvider = ({ children }) => {
     }
   }, [isAdmin, projects, blogPosts, aboutInfo, siteNotice, language]);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const remote = await fetchRemoteSiteData();
+      if (cancelled || !remote) return;
+
+      const bundledAt = parseExportedAt(siteData);
+      const remoteAt = parseExportedAt(remote);
+      if (remoteAt <= bundledAt) return;
+
+      if (isAdmin) {
+        const draft = safeParseJson(localStorage.getItem(draftKey));
+        const draftAt = parseExportedAt(draft);
+        if (draftAt >= remoteAt) return;
+      }
+
+      applyRemoteIfNewer(remote);
+    })();
+    return () => { cancelled = true; };
+  }, [isAdmin, applyRemoteIfNewer]);
+
+  useEffect(() => {
+    if (isAdmin) return undefined;
+
+    const poll = () => {
+      fetchRemoteSiteData().then(applyRemoteIfNewer);
+    };
+    poll();
+
+    const intervalId = window.setInterval(poll, 90000);
+    const onVisible = () => {
+      if (!document.hidden) poll();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [isAdmin, applyRemoteIfNewer]);
+
+  useEffect(() => {
+    if (!isAdmin) {
+      autoSyncBaselineRef.current = null;
+      cancelScheduledSiteDataSync();
+      return undefined;
+    }
+
+    const snapshot = buildDataSnapshot();
+    if (autoSyncBaselineRef.current === null) {
+      autoSyncBaselineRef.current = snapshot;
+      if (isSiteDataSyncConfigured()) markSiteDataSynced(snapshot);
+      return undefined;
+    }
+    if (autoSyncBaselineRef.current === snapshot) return undefined;
+
+    scheduleSiteDataSync(exportData, snapshot, (status) => {
+      setSiteDataSync(status);
+      if (status.status === 'synced') autoSyncBaselineRef.current = snapshot;
+    });
+    return undefined;
+  }, [isAdmin, buildDataSnapshot, exportData]);
+
   const importData = (json) => {
     try {
       const data = typeof json === 'string' ? JSON.parse(json) : json;
-      if (data.projects) {
-        const arr = Array.isArray(data.projects) ? data.projects : [];
-        setProjects(ensureOrderFields(arr.map(normalizeProject)));
-      }
-      if (data.blogPosts) {
-        const arr = Array.isArray(data.blogPosts) ? data.blogPosts : [];
-        setBlogPosts(ensureOrderFields(arr.map(normalizeBlogPost)));
-      }
-      if (data.aboutInfo) setAboutInfo(data.aboutInfo);
-      if (data.siteNotice) setSiteNotice(normalizeSiteNotice(data.siteNotice));
-      if (data.language) setLanguage(data.language);
-      return true;
+      return applySiteDataPayload(data);
     } catch {
       return false;
     }
@@ -565,7 +681,7 @@ export const DataProvider = ({ children }) => {
       isAdmin, login, logout,
       language, setLanguage,
       analytics, analyticsLoading, recordVisit, trackEvent, reloadAnalytics,
-      exportData, importData
+      exportData, importData, siteDataSync, manualSyncSiteData
     }}>
       {children}
     </DataContext.Provider>

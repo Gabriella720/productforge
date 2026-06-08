@@ -12,11 +12,13 @@ const Login = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setError('');
     if (login(password)) {
+      setPassword('');
       navigate('/admin');
-    } else {
-      setError(t('login.error') || 'Invalid password');
+      return;
     }
+    setError(t('login.error') || 'Invalid password');
   };
 
   return (
