@@ -31,13 +31,10 @@ export const normalizeGitHubToken = (raw) => {
   return token.replace(/\s+/g, '');
 };
 
-/** Manual session token takes priority over build-time env token. */
+/** Data Backup session token only — not used for analytics. */
 export const getStoredGitHubToken = () => {
-  const sessionToken = typeof sessionStorage !== 'undefined'
-    ? normalizeGitHubToken(sessionStorage.getItem(GH_TOKEN_SESSION) || '')
-    : '';
-  if (sessionToken) return sessionToken;
-  return normalizeGitHubToken(import.meta.env.VITE_GITHUB_ANALYTICS_TOKEN || '');
+  if (typeof sessionStorage === 'undefined') return '';
+  return normalizeGitHubToken(sessionStorage.getItem(GH_TOKEN_SESSION) || '');
 };
 
 export const validateGitHubTokenFormat = (token) => {
@@ -101,16 +98,16 @@ export const getGitHubHeaders = (token, scheme = 'Bearer') => ({
   'X-GitHub-Api-Version': '2022-11-28',
 });
 
-const fetchGitHub = async (url, token) => {
+export const fetchGitHub = async (url, token, init = {}) => {
   const normalized = normalizeGitHubToken(token);
-  let res = await fetch(url, { headers: getGitHubHeaders(normalized, 'Bearer') });
+  let res = await fetch(url, { ...init, headers: { ...getGitHubHeaders(normalized, 'Bearer'), ...init.headers } });
   if (res.status === 401) {
-    res = await fetch(url, { headers: getGitHubHeaders(normalized, 'token') });
+    res = await fetch(url, { ...init, headers: { ...getGitHubHeaders(normalized, 'token'), ...init.headers } });
   }
   return res;
 };
 
-const parseGitHubError = async (res) => {
+export const parseGitHubError = async (res) => {
   const text = await res.text();
   try {
     const json = JSON.parse(text);

@@ -1,8 +1,22 @@
-import { getGitHubHeaders, getStoredGitHubToken } from './githubPublish';
+import {
+  fetchGitHub,
+  formatGitHubApiError,
+  normalizeGitHubToken,
+  parseGitHubError,
+} from './githubPublish';
 
+/** Build-time analytics token only — independent from Data Backup session token. */
+export const getAnalyticsGitHubToken = () => (
+  normalizeGitHubToken(import.meta.env.VITE_GITHUB_ANALYTICS_TOKEN || '')
+);
+
+const GITHUB_API = 'https://api.github.com';
 const PENDING_KEY = 'analyticsPendingSync';
 const CACHE_KEY = 'analyticsCache';
 const MAX_RECORDS = 10000;
+/** Contents API base64 payload must stay under 1 MB; Git Data API handles larger blobs. */
+const CONTENTS_API_MAX_BYTES = 700000;
+const GIT_BLOB_MAX_BYTES = 4_500_000;
 
 const base64EncodeUtf8 = (str) => {
   const bytes = new TextEncoder().encode(str);
@@ -12,26 +26,11 @@ const base64EncodeUtf8 = (str) => {
 };
 
 export const getAnalyticsConfig = () => {
-  const token = getStoredGitHubToken();
-  const owner = (
-    import.meta.env.VITE_GITHUB_ANALYTICS_OWNER ||
-    localStorage.getItem('ghOwner') ||
-    'Gabriella720'
-  ).trim();
-  const repo = (
-    import.meta.env.VITE_GITHUB_ANALYTICS_REPO ||
-    localStorage.getItem('ghRepo') ||
-    'productforge'
-  ).trim();
-  const branch = (
-    import.meta.env.VITE_GITHUB_ANALYTICS_BRANCH ||
-    localStorage.getItem('ghBranch') ||
-    'main'
-  ).trim();
-  const path = (
-    import.meta.env.VITE_GITHUB_ANALYTICS_PATH ||
-    'public/analytics.json'
-  ).trim();
+  const token = getAnalyticsGitHubToken();
+  const owner = (import.meta.env.VITE_GITHUB_ANALYTICS_OWNER || 'Gabriella720').trim();
+  const repo = (import.meta.env.VITE_GITHUB_ANALYTICS_REPO || 'productforge').trim();
+  const branch = (import.meta.env.VITE_GITHUB_ANALYTICS_BRANCH || 'main').trim();
+  const path = (import.meta.env.VITE_GITHUB_ANALYTICS_PATH || 'public/analytics.json').trim();
   return { token, owner, repo, branch, path };
 };
 
@@ -132,35 +131,151 @@ export const fetchDeployedAnalytics = async () => {
   }
 };
 
-const fetchRepoAnalytics = async (config) => {
-  const { token, owner, repo, branch, path } = config;
-  if (!token) return { visits: [], sha: null };
+const serializeVisits = (visits, maxBytes = GIT_BLOB_MAX_BYTES) => {
+  const sorted = dedupeVisits(visits).slice(0, MAX_RECORDS);
+  let trimmed = sorted;
+  let json = JSON.stringify(trimmed);
+  while (json.length > maxBytes && trimmed.length > 50) {
+    trimmed = trimmed.slice(0, trimmed.length - 50);
+    json = JSON.stringify(trimmed);
+  }
+  return json;
+};
+
+const decodeGitHubContent = async (json, token) => {
+  if (json?.content) {
+    return atob(json.content.replace(/\n/g, ''));
+  }
+  if (json?.download_url) {
+    const res = await fetch(json.download_url, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`github_download_${res.status}`);
+    return await res.text();
+  }
+  return '[]';
+};
+
+const fetchRepoAnalytics = async (config, token = config.token) => {
+  const { owner, repo, branch, path } = config;
+  const normalized = normalizeGitHubToken(token);
+  if (!normalized) return { visits: [], sha: null };
   const apiPath = path.split('/').map(encodeURIComponent).join('/');
-  const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${apiPath}?ref=${encodeURIComponent(branch)}`;
-  const res = await fetch(url, { headers: getGitHubHeaders(token) });
+  const url = `${GITHUB_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${apiPath}?ref=${encodeURIComponent(branch)}`;
+  const res = await fetchGitHub(url, normalized);
   if (res.status === 404) return { visits: [], sha: null };
-  if (!res.ok) throw new Error(`github_fetch_${res.status}`);
+  if (!res.ok) {
+    const msg = await parseGitHubError(res);
+    throw new Error(formatGitHubApiError(res.status, msg, { step: 'contents' }));
+  }
   const json = await res.json();
-  const content = json.content ? atob(json.content.replace(/\n/g, '')) : '[]';
+  const content = await decodeGitHubContent(json, normalized);
   return { visits: normalizeVisits(safeParse(content, [])), sha: json.sha || null };
 };
 
-const putRepoAnalytics = async (config, visits, sha) => {
-  const { token, owner, repo, branch, path } = config;
+const putRepoAnalyticsViaGitData = async (config, content, token) => {
+  const { owner, repo, branch, path } = config;
+  const normalized = normalizeGitHubToken(token);
+  const repoUrl = `${GITHUB_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
+
+  const refRes = await fetchGitHub(`${repoUrl}/git/ref/heads/${encodeURIComponent(branch)}`, normalized);
+  if (!refRes.ok) {
+    const msg = await parseGitHubError(refRes);
+    return { ok: false, status: refRes.status, error: formatGitHubApiError(refRes.status, msg) };
+  }
+  const refJson = await refRes.json();
+  const parentSha = refJson?.object?.sha;
+  if (!parentSha) return { ok: false, status: 500, error: '无法读取分支引用。' };
+
+  const parentCommitRes = await fetchGitHub(`${repoUrl}/git/commits/${parentSha}`, normalized);
+  if (!parentCommitRes.ok) {
+    const msg = await parseGitHubError(parentCommitRes);
+    return { ok: false, status: parentCommitRes.status, error: formatGitHubApiError(parentCommitRes.status, msg) };
+  }
+  const parentCommit = await parentCommitRes.json();
+
+  const blobRes = await fetchGitHub(`${repoUrl}/git/blobs`, normalized, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content, encoding: 'utf-8' }),
+  });
+  if (!blobRes.ok) {
+    const msg = await parseGitHubError(blobRes);
+    return { ok: false, status: blobRes.status, error: formatGitHubApiError(blobRes.status, msg) };
+  }
+  const blobJson = await blobRes.json();
+
+  const treeRes = await fetchGitHub(`${repoUrl}/git/trees`, normalized, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      base_tree: parentCommit.tree.sha,
+      tree: [{ path, mode: '100644', type: 'blob', sha: blobJson.sha }],
+    }),
+  });
+  if (!treeRes.ok) {
+    const msg = await parseGitHubError(treeRes);
+    return { ok: false, status: treeRes.status, error: formatGitHubApiError(treeRes.status, msg) };
+  }
+  const treeJson = await treeRes.json();
+
+  const commitRes = await fetchGitHub(`${repoUrl}/git/commits`, normalized, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message: `Update analytics (${new Date().toISOString()})`,
+      tree: treeJson.sha,
+      parents: [parentSha],
+    }),
+  });
+  if (!commitRes.ok) {
+    const msg = await parseGitHubError(commitRes);
+    return { ok: false, status: commitRes.status, error: formatGitHubApiError(commitRes.status, msg) };
+  }
+  const commitJson = await commitRes.json();
+
+  const updateRefRes = await fetchGitHub(`${repoUrl}/git/refs/heads/${encodeURIComponent(branch)}`, normalized, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sha: commitJson.sha, force: false }),
+  });
+  if (!updateRefRes.ok) {
+    const msg = await parseGitHubError(updateRefRes);
+    return { ok: false, status: updateRefRes.status, error: formatGitHubApiError(updateRefRes.status, msg) };
+  }
+
+  return { ok: true, commitUrl: `https://github.com/${owner}/${repo}/commit/${commitJson.sha}` };
+};
+
+const putRepoAnalytics = async (config, visits, sha, token = config.token) => {
+  const { owner, repo, branch, path } = config;
+  const normalized = normalizeGitHubToken(token);
+  const content = serializeVisits(visits);
   const apiPath = path.split('/').map(encodeURIComponent).join('/');
-  const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${apiPath}`;
+  const url = `${GITHUB_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${apiPath}`;
+
+  if (content.length > CONTENTS_API_MAX_BYTES) {
+    return putRepoAnalyticsViaGitData(config, content, normalized);
+  }
+
   const body = {
     message: `Update analytics (${new Date().toISOString()})`,
-    content: base64EncodeUtf8(JSON.stringify(dedupeVisits(visits).slice(0, MAX_RECORDS), null, 2)),
+    content: base64EncodeUtf8(content),
     branch,
   };
   if (sha) body.sha = sha;
-  const res = await fetch(url, {
+  const res = await fetchGitHub(url, normalized, {
     method: 'PUT',
-    headers: { ...getGitHubHeaders(token), 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  return res;
+  if (res.ok) {
+    const result = await res.json();
+    return { ok: true, commitUrl: result?.commit?.html_url || '' };
+  }
+  if (res.status === 422 || res.status === 413) {
+    return putRepoAnalyticsViaGitData(config, content, normalized);
+  }
+  const msg = await parseGitHubError(res);
+  return { ok: false, status: res.status, error: formatGitHubApiError(res.status, msg) };
 };
 
 export const mergeVisits = (...lists) => dedupeVisits(lists.flat());
@@ -171,7 +286,7 @@ const fetchAuthoritativeAnalytics = async (config = getAnalyticsConfig()) => {
 
   if (config.token) {
     try {
-      const { visits } = await fetchRepoAnalytics(config);
+      const { visits } = await fetchRepoAnalytics(config, config.token);
       if (visits.length) return visits;
     } catch {
       // fall through to deployed bundle
@@ -198,33 +313,42 @@ export const refreshAnalyticsFromGitHub = refreshAnalyticsSnapshot;
 
 let syncInFlight = null;
 
-export const syncPendingVisits = async () => {
+const uploadAnalyticsSnapshot = async (config, { force = false } = {}) => {
+  const token = getAnalyticsGitHubToken();
+  if (!token) return { ok: false, reason: 'no_token' };
+
+  const pending = getPendingVisits();
+  const cached = getCachedVisits();
+  if (!force && !pending.length) {
+    return { ok: true, synced: 0, reason: 'nothing_pending' };
+  }
+
+  let lastError = 'sync_failed';
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    try {
+      const { visits: remote, sha } = await fetchRepoAnalytics(config, token);
+      const merged = mergeVisits(remote, pending, cached);
+      const putResult = await putRepoAnalytics(config, merged, sha, token);
+      if (putResult.ok) {
+        setPendingVisits([]);
+        setCachedVisits(merged);
+        return { ok: true, synced: pending.length, commitUrl: putResult.commitUrl || '' };
+      }
+      if (putResult.status === 409) continue;
+      lastError = putResult.error || `github_put_${putResult.status}`;
+    } catch (e) {
+      lastError = e?.message || 'sync_failed';
+      if (attempt === 3) break;
+    }
+  }
+  return { ok: false, reason: lastError };
+};
+
+export const syncPendingVisits = async (options = {}) => {
   if (syncInFlight) return syncInFlight;
   const config = getAnalyticsConfig();
-  if (!config.token) return { ok: false, reason: 'no_token' };
 
-  syncInFlight = (async () => {
-    const pending = getPendingVisits();
-    if (!pending.length) return { ok: true, synced: 0 };
-
-    for (let attempt = 0; attempt < 4; attempt++) {
-      try {
-        const { visits: remote, sha } = await fetchRepoAnalytics(config);
-        const merged = mergeVisits(remote, pending);
-        const res = await putRepoAnalytics(config, merged, sha);
-        if (res.ok) {
-          setPendingVisits([]);
-          setCachedVisits(merged);
-          return { ok: true, synced: pending.length };
-        }
-        if (res.status === 409) continue;
-        return { ok: false, reason: `github_put_${res.status}` };
-      } catch (e) {
-        if (attempt === 3) return { ok: false, reason: e?.message || 'sync_failed' };
-      }
-    }
-    return { ok: false, reason: 'conflict' };
-  })();
+  syncInFlight = uploadAnalyticsSnapshot(config, options);
 
   try {
     return await syncInFlight;

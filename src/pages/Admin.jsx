@@ -469,17 +469,21 @@ const AnalyticsDashboard = ({ analytics, loading, onRefresh }) => {
   const handleSync = async () => {
     setSyncState('syncing');
     setSyncMessage('');
-    const result = await syncPendingVisits();
+    const result = await syncPendingVisits({ force: true });
     await onRefresh?.();
     if (result.ok) {
       setSyncState('done');
-      setSyncMessage(t('admin.analyticsSyncOk'));
+      setSyncMessage(
+        result.reason === 'nothing_pending'
+          ? t('admin.analyticsSyncUpToDate')
+          : t('admin.analyticsSyncOk')
+      );
     } else {
       setSyncState('error');
       setSyncMessage(
         result.reason === 'no_token'
           ? t('admin.analyticsSyncNoToken')
-          : t('admin.analyticsSyncFail')
+          : (result.reason || t('admin.analyticsSyncFail'))
       );
     }
   };

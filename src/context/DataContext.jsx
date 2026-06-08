@@ -374,7 +374,7 @@ export const DataProvider = ({ children }) => {
       void reloadAnalytics();
     };
     poll();
-    const intervalId = window.setInterval(poll, 30000);
+    const intervalId = window.setInterval(poll, 20000);
     return () => window.clearInterval(intervalId);
   }, [isAdmin, reloadAnalytics]);
 
