@@ -40,19 +40,26 @@ export const applyBlogLocalePatch = (post, lang, patch) => {
 
   nextI18n[lang] = { ...nextI18n[lang], ...nextPatch };
 
-  const sibling = lang === 'en' ? 'zh' : 'en';
-  if (shouldSyncSiblingLocale(beforeEdited, beforeSibling, nextI18n[sibling])) {
-    nextI18n[sibling] = { ...nextI18n[sibling], ...nextPatch };
+  if (nextPatch.title !== undefined) {
+    const unifiedTitle = (nextPatch.title ?? '').toString();
+    nextI18n.en = { ...nextI18n.en, title: unifiedTitle };
+    nextI18n.zh = { ...nextI18n.zh, title: unifiedTitle };
+  } else {
+    const sibling = lang === 'en' ? 'zh' : 'en';
+    if (shouldSyncSiblingLocale(beforeEdited, beforeSibling, nextI18n[sibling])) {
+      nextI18n[sibling] = { ...nextI18n[sibling], ...nextPatch };
+    }
   }
 
   nextI18n.en.contentFormat = resolveBlockFormat(nextI18n.en);
   nextI18n.zh.contentFormat = resolveBlockFormat(nextI18n.zh);
 
   const edited = nextI18n[lang];
+  const displayTitle = (nextI18n.zh.title || nextI18n.en.title || edited.title || prev.title || '').toString();
   return {
     ...prev,
     i18n: nextI18n,
-    title: edited.title ?? prev.title ?? '',
+    title: displayTitle,
     description: edited.description ?? prev.description ?? '',
     content: edited.content ?? prev.content ?? '',
     contentFormat: edited.contentFormat || resolveBlockFormat(edited),
@@ -93,6 +100,7 @@ export const clearBlogLocaleCache = (postId) => {
   if (typeof window === 'undefined' || postId == null) return;
   ['en', 'zh'].forEach((lang) => {
     localStorage.removeItem(`blogResolved:v5:${postId}:${lang}`);
+    localStorage.removeItem(`blogResolved:v6:${postId}:${lang}`);
     localStorage.removeItem(`blogResolved:v4:${postId}:${lang}`);
   });
 };

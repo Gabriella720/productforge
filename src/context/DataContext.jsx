@@ -218,11 +218,16 @@ export const DataProvider = ({ children }) => {
     }
 
     const primary = detectContentLanguage(`${zh.title} ${zh.content}`) === 'zh' ? zh : en;
+    const canonicalTitle = (primary.title || fallbackTitle).toString();
+    if (canonicalTitle) {
+      en.title = canonicalTitle;
+      zh.title = canonicalTitle;
+    }
 
     return {
       ...base,
       i18n: { en, zh },
-      title: primary.title || fallbackTitle,
+      title: canonicalTitle,
       description: primary.description || fallbackDesc,
       content: primary.content || fallbackContent,
       contentFormat: primary.contentFormat || 'html',

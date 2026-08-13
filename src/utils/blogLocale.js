@@ -44,7 +44,16 @@ export const getLocaleBlock = (post, lang) => {
   const zh = blockFrom(i18n.zh, top);
 
   if (lang === 'zh') {
-    const targetLang = detectContentLanguage(`${target.title} ${target.description} ${target.content}`);
+    const explicitZhTitle = (i18n.zh?.title || '').trim();
+    const topTitle = (top.title || '').trim();
+    const canonicalTitle = topTitle || explicitZhTitle;
+    const merged = blockFrom(i18n.zh, top);
+    const fallbackContent = merged.content || en.content || top.content || '';
+
+    if (canonicalTitle) {
+      return { ...merged, title: canonicalTitle, content: fallbackContent };
+    }
+
     const enLang = detectContentLanguage(`${en.title} ${en.description} ${en.content}`);
     const zhLang = detectContentLanguage(`${zh.title} ${zh.description} ${zh.content}`);
 
@@ -129,7 +138,7 @@ export const isResolvedLocaleValid = (fields, targetLang, source = null) => {
   if (sourceContent && !resolvedContent) return false;
 
   const sourceTitle = (source?.title || '').trim();
-  if (sourceTitle && fields.sourceTitle && fields.sourceTitle !== sourceTitle) return false;
+  if (sourceTitle && fields.sourceTitle !== sourceTitle) return false;
 
   const lang = detectContentLanguage(`${fields.title} ${fields.description} ${fields.content}`);
   if (!lang) return Boolean(resolvedContent || fields.title);

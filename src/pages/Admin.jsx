@@ -17,7 +17,7 @@ import {
   isMarkdownFormat,
   syncMarkdownTitleHeading,
 } from '../utils/markdown';
-import { applyBlogLocalePatch, buildBlogPublishPayload } from '../utils/blogEditor';
+import { applyBlogLocalePatch, buildBlogPublishPayload, clearBlogLocaleCache } from '../utils/blogEditor';
 import {
   checkGitHubCredentials,
   detectGitHubPagesRepo,
@@ -27,6 +27,7 @@ import {
 import BlogContent from '../components/BlogContent';
 import SortableList from '../components/SortableList';
 import { sortByOrder } from '../utils/sortOrder';
+import { getLocaleBlock } from '../utils/blogLocale';
 
 // TinyMCE self-hosted configuration
 import 'tinymce/tinymce';
@@ -1133,7 +1134,7 @@ const ProjectManager = ({ projects, onAdd, onUpdate, onDelete, onReorder }) => {
 const BlogList = ({ posts, onStartEdit, onStartAdd, onDelete, onReorder }) => {
   const t = useTranslation();
   const { language } = useData();
-  const getTitle = (post) => post?.i18n?.[language]?.title || post?.i18n?.en?.title || post?.title || '';
+  const getTitle = (post) => getLocaleBlock(post, language).title || post?.title || '';
   const sortedPosts = useMemo(() => sortByOrder(posts), [posts]);
 
   return (
@@ -1241,6 +1242,7 @@ const BlogEditor = ({ post, onSave, onCancel }) => {
       }
       return applyBlogLocalePatch(prev, activeLang, patch);
     });
+    if (post?.id != null) clearBlogLocaleCache(post.id);
   };
 
   const setEditorMode = (mode) => {

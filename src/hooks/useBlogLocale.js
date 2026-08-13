@@ -8,7 +8,7 @@ import {
 } from '../utils/blogLocale';
 import { translateBlogFields } from '../utils/translateService';
 
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v6';
 const postCacheKey = (postId, lang) => `blogResolved:${CACHE_VERSION}:${postId}:${lang}`;
 
 const readCachedLocale = (postId, lang, source, includeContent) => {
