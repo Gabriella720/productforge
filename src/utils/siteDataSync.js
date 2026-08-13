@@ -70,6 +70,10 @@ export const scheduleSiteDataSync = (getContent, dataSnapshot, onStatus) => {
     if (dataSnapshot === lastSyncedDataSnapshot) return;
 
     if (!isSiteDataSyncConfigured()) {
+      onStatus?.({
+        status: 'error',
+        message: '未配置 GitHub Token。请在 Data Backup 粘贴 Token 后重试。',
+      });
       return;
     }
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { useData, useTranslation } from '../context/DataContext';
 import { 
   Plus, Trash2, Edit2, Save, X, LogOut, Layout, 
@@ -66,7 +67,8 @@ const Admin = () => {
     analyticsLoading,
     reloadAnalytics,
     siteDataSync,
-    logout 
+    manualSyncSiteData,
+    logout
   } = useData();
   const t = useTranslation();
   const navigate = useNavigate();
@@ -215,13 +217,16 @@ const Admin = () => {
       ) : (
         <BlogEditor 
           post={editingPost} 
-          onSave={(data) => {
-            if (editingPost.id) {
-              updateBlogPost(data);
-            } else {
-              addBlogPost(data);
-            }
+          onSave={async (data) => {
+            flushSync(() => {
+              if (editingPost.id) {
+                updateBlogPost(data);
+              } else {
+                addBlogPost(data);
+              }
+            });
             setBlogView('list');
+            await manualSyncSiteData();
           }} 
           onCancel={() => setBlogView('list')} 
         />
@@ -1327,7 +1332,12 @@ const BlogEditor = ({ post, onSave, onCancel }) => {
               onClick={() => {
                 const now = new Date();
                 const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                onSave(buildBlogPublishPayload(formData, activeLang, { date: dateStr }));
+                const payload = buildBlogPublishPayload(formData, activeLang, { date: dateStr });
+                if (!payload.title?.trim() && !payload.content?.trim()) {
+                  setUploadNotice(t('admin.publishEmpty'));
+                  return;
+                }
+                void onSave(payload);
               }}
               className="flex items-center px-8 py-2.5 bg-brand text-white rounded-xl font-bold hover:bg-brand-hover transition-all shadow-md hover:shadow-brand/20"
             >

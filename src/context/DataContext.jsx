@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { translations } from '../translations';
 import siteData from '../site-data.json';
 import {
@@ -309,6 +310,7 @@ export const DataProvider = ({ children }) => {
   const [siteDataSync, setSiteDataSync] = useState({ status: 'idle', message: '', commitUrl: '', lastSyncedAt: '' });
   const [adminHydrationReady, setAdminHydrationReady] = useState(false);
   const autoSyncBaselineRef = useRef(null);
+  const adminEntrySnapshotRef = useRef(null);
   const lastAppliedRemoteAtRef = useRef(parseExportedAt(siteData));
   const rebaselineAutoSyncRef = useRef(() => {});
 
@@ -612,21 +614,29 @@ export const DataProvider = ({ children }) => {
   useEffect(() => {
     if (!isAdmin) {
       setAdminHydrationReady(false);
+      adminEntrySnapshotRef.current = null;
       autoSyncBaselineRef.current = null;
       cancelScheduledSiteDataSync();
       setSiteDataSync({ status: 'idle', message: '', commitUrl: '', lastSyncedAt: '' });
       return undefined;
     }
 
+    adminEntrySnapshotRef.current = buildDataSnapshot();
     setAdminHydrationReady(false);
     setSiteDataSync({ status: 'idle', message: '', commitUrl: '', lastSyncedAt: '' });
     const timer = window.setTimeout(() => {
-      rebaselineAutoSync();
+      const current = buildDataSnapshot();
+      const hadEditsDuringHydration = current !== adminEntrySnapshotRef.current;
       setAdminHydrationReady(true);
+      if (hadEditsDuringHydration && isSiteDataSyncConfigured()) {
+        scheduleSiteDataSync(exportData, current, setSiteDataSync);
+      } else {
+        rebaselineAutoSync();
+      }
     }, 4000);
 
     return () => window.clearTimeout(timer);
-  }, [isAdmin, rebaselineAutoSync]);
+  }, [isAdmin, rebaselineAutoSync, buildDataSnapshot, exportData]);
 
   const applyPreparedSiteData = useCallback((preparedContent) => {
     if (!preparedContent) return;
