@@ -128,6 +128,9 @@ export const isResolvedLocaleValid = (fields, targetLang, source = null) => {
   const resolvedContent = (fields.content || '').trim();
   if (sourceContent && !resolvedContent) return false;
 
+  const sourceTitle = (source?.title || '').trim();
+  if (sourceTitle && fields.sourceTitle && fields.sourceTitle !== sourceTitle) return false;
+
   const lang = detectContentLanguage(`${fields.title} ${fields.description} ${fields.content}`);
   if (!lang) return Boolean(resolvedContent || fields.title);
   return lang === targetLang;

@@ -1,4 +1,4 @@
-import { isMarkdownFormat } from './markdown';
+import { isMarkdownFormat, syncMarkdownTitleHeading } from './markdown';
 
 const defaultBlock = () => ({ title: '', description: '', content: '', contentFormat: 'html' });
 
@@ -59,21 +59,33 @@ export const applyBlogLocalePatch = (post, lang, patch) => {
   };
 };
 
-/** Publish payload mirrors the tab being edited (preview uses the same source). */
+/** Publish payload mirrors the tab being edited; sync markdown H1 and sibling locales. */
 export const buildBlogPublishPayload = (post, activeLang, extra = {}) => {
   const base = post && typeof post === 'object' ? post : {};
   const edited = base.i18n?.[activeLang] || {};
-  const content = (edited.content || base.content || '').trim();
+  let title = (edited.title || base.title || '').trim();
+  let description = (edited.description || base.description || '').trim();
+  let content = (edited.content || base.content || '').trim();
   const contentFormat = edited.contentFormat || base.contentFormat || resolveBlockFormat(edited);
 
-  return {
-    ...base,
-    ...extra,
-    i18n: base.i18n,
-    title: edited.title || base.title || '',
-    description: edited.description || base.description || '',
-    content: edited.content || base.content || '',
+  if (contentFormat === 'markdown' && title) {
+    content = syncMarkdownTitleHeading(content, title);
+  }
+
+  const patched = applyBlogLocalePatch(base, activeLang, {
+    title,
+    description,
+    content,
     contentFormat,
+  });
+
+  return {
+    ...patched,
+    ...extra,
+    title: patched.i18n?.[activeLang]?.title || title,
+    description: patched.i18n?.[activeLang]?.description || description,
+    content: patched.i18n?.[activeLang]?.content || content,
+    contentFormat: patched.i18n?.[activeLang]?.contentFormat || contentFormat,
   };
 };
 

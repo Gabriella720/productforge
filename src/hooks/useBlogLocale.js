@@ -161,7 +161,10 @@ export const useBlogLocale = (post, options = {}) => {
         }
 
         try {
-          localStorage.setItem(postCacheKey(postId, language), JSON.stringify(resolved));
+          localStorage.setItem(postCacheKey(postId, language), JSON.stringify({
+            ...resolved,
+            sourceTitle: source.title || '',
+          }));
         } catch {
           // ignore
         }

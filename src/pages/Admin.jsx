@@ -15,6 +15,7 @@ import {
   processMarkdownUpload,
   renderMarkdownToHtml,
   isMarkdownFormat,
+  syncMarkdownTitleHeading,
 } from '../utils/markdown';
 import { applyBlogLocalePatch, buildBlogPublishPayload } from '../utils/blogEditor';
 import {
@@ -1227,7 +1228,19 @@ const BlogEditor = ({ post, onSave, onCancel }) => {
   const isMarkdownMode = langData.contentFormat === 'markdown';
 
   const setLangField = (field, value) => {
-    setFormData((prev) => applyBlogLocalePatch(prev, activeLang, { [field]: value }));
+    setFormData((prev) => {
+      const patch = { [field]: value };
+      if (field === 'title') {
+        const block = prev.i18n?.[activeLang] || {};
+        const format = block.contentFormat || prev.contentFormat || 'html';
+        if (format === 'markdown' || isMarkdownFormat(format, block.content || prev.content || '')) {
+          const currentContent = block.content || prev.content || '';
+          patch.content = syncMarkdownTitleHeading(currentContent, value);
+          patch.contentFormat = 'markdown';
+        }
+      }
+      return applyBlogLocalePatch(prev, activeLang, patch);
+    });
   };
 
   const setEditorMode = (mode) => {

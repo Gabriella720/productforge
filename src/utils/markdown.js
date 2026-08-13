@@ -46,6 +46,19 @@ export const extractMarkdownMetadata = (markdown) => {
   return { title, description };
 };
 
+/** Keep the first markdown H1 in sync with the edited title field. */
+export const syncMarkdownTitleHeading = (markdown, title) => {
+  const source = (markdown || '').toString();
+  const trimmedTitle = (title || '').trim();
+  if (!trimmedTitle) return source;
+
+  if (/^#{1,2}\s+/m.test(source)) {
+    return source.replace(/^#{1,2}\s+(.+)$/m, `# ${trimmedTitle}`);
+  }
+
+  return `# ${trimmedTitle}\n\n${source}`.trim();
+};
+
 const readFileAsDataURL = (file) =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
